@@ -1,0 +1,6 @@
+@Photo2GoAPI_HostAddress = http://localhost:5218
+
+GET {{Photo2GoAPI_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

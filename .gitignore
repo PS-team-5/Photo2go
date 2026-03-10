@@ -1,0 +1,31 @@
+# Build output
+bin/
+obj/
+
+# IDE files
+.idea/
+.vs/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+*.iml
+
+# Logs
+*.log
+
+# SQLite
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite3
+
+# Environment / secrets
+.env
+.env.*
+appsettings.Development.json
+
+# OS files
+.DS_Store
+Thumbs.db
