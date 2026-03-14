@@ -1,8 +1,11 @@
 import { useState } from "react";
 import "./App.css";
+import AuthTabs from "./components/AuthTabs";
+import LoginForm from "./components/LoginForm";
+import RegisterForm from "./components/RegisterForm";
+import MessageBox from "./components/MessageBox";
 
 const API_BASE_URL = "http://localhost:5218/api/user";
-
 
 function App() {
     const [mode, setMode] = useState("login");
@@ -15,13 +18,11 @@ function App() {
         password: "",
     });
 
-
     const [registerData, setRegisterData] = useState({
         username: "",
         email: "",
         password: "",
     });
-
 
     const handleLoginChange = (e) => {
         const { name, value } = e.target;
@@ -60,7 +61,7 @@ function App() {
             } else {
                 setMessage(text || "Login failed");
             }
-        } catch (error) {
+        } catch {
             setMessage("Could not connect to backend");
         } finally {
             setLoading(false);
@@ -88,7 +89,7 @@ function App() {
             } else {
                 setMessage(text || "Registration failed");
             }
-        } catch (error) {
+        } catch {
             setMessage("Could not connect to backend");
         } finally {
             setLoading(false);
@@ -98,97 +99,28 @@ function App() {
     return (
         <div className="auth-page">
             <div className="auth-card">
-                <h1>Photo2Go</h1>
+                <h1 className="auth-title">Photo2Go</h1>
                 <p className="subtitle">User authentication</p>
 
-                <div className="switch-buttons">
-                    <button
-                        className={mode === "login" ? "active" : ""}
-                        onClick={() => {
-                            setMode("login");
-                            setMessage("");
-                        }}
-                        type="button"
-                    >
-                        Login
-                    </button>
-                    <button
-                        className={mode === "register" ? "active" : ""}
-                        onClick={() => {
-                            setMode("register");
-                            setMessage("");
-                        }}
-                        type="button"
-                    >
-                        Register
-                    </button>
-                </div>
+                <AuthTabs mode={mode} setMode={setMode} setMessage={setMessage} />
 
                 {mode === "login" ? (
-                    <form onSubmit={handleLogin} className="auth-form">
-                        <input
-                            type="text"
-                            name="username"
-                            placeholder="Username"
-                            value={loginData.username}
-                            onChange={handleLoginChange}
-                            required
-                        />
-                        <input
-                            type="email"
-                            name="email"
-                            placeholder="Email"
-                            value={loginData.email}
-                            onChange={handleLoginChange}
-                            required
-                        />
-                        <input
-                            type="password"
-                            name="password"
-                            placeholder="Password"
-                            value={loginData.password}
-                            onChange={handleLoginChange}
-                            required
-                        />
-                        <button type="submit" disabled={loading}>
-                            {loading ? "Logging in..." : "Login"}
-                        </button>
-                    </form>
-
+                    <LoginForm
+                        loginData={loginData}
+                        handleLoginChange={handleLoginChange}
+                        handleLogin={handleLogin}
+                        loading={loading}
+                    />
                 ) : (
-                        <form onSubmit={handleRegister} className="auth-form">
-                            <input
-                                type="text"
-                                name="username"
-                                placeholder="Username"
-                                value={registerData.username}
-                                onChange={handleRegisterChange}
-                                required
-                            />
-                            <input
-                                type="email"
-                                name="email"
-                                placeholder="Email"
-                                value={registerData.email}
-                                onChange={handleRegisterChange}
-                                required
-                            />
-                            <input
-                                type="password"
-                                name="password"
-                                placeholder="Password"
-                                value={registerData.password}
-                                onChange={handleRegisterChange}
-                                required
-                            />
-                            <button type="submit" disabled={loading}>
-                                {loading ? "Registering..." : "Register"}
-                            </button>
-                        </form>
-
+                    <RegisterForm
+                        registerData={registerData}
+                        handleRegisterChange={handleRegisterChange}
+                        handleRegister={handleRegister}
+                        loading={loading}
+                    />
                 )}
 
-                {message && <p className="message">{message}</p>}
+                <MessageBox message={message} />
             </div>
         </div>
     );

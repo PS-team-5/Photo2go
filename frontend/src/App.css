@@ -23,10 +23,11 @@
     text-align: center;
 }
 
-    .auth-card h1 {
-        margin-bottom: 8px;
-        color: #0f172a;
-    }
+.auth-title {
+    margin-bottom: 8px;
+    color: #0f172a;
+}
+
 
 .subtitle {
     margin-bottom: 24px;
