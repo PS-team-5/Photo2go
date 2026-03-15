@@ -1,16 +1,22 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import "./App.css";
 import AuthTabs from "./components/AuthTabs";
 import LoginForm from "./components/LoginForm";
 import RegisterForm from "./components/RegisterForm";
 import MessageBox from "./components/MessageBox";
+import UploadForm from "./components/UploadForm";
 
-const API_BASE_URL = "http://localhost:5218/api/user";
+const USER_API_BASE_URL = "http://localhost:5218/api/user";
+const ANALYZE_IMAGE_URL = "http://localhost:5218/analyze-image";
+const AUTH_STORAGE_KEY = "photo2go-user";
 
 function App() {
     const [mode, setMode] = useState("login");
     const [message, setMessage] = useState("");
     const [loading, setLoading] = useState(false);
+    const [loggedInUser, setLoggedInUser] = useState(null);
+    const [selectedFile, setSelectedFile] = useState(null);
+    const [analysisResult, setAnalysisResult] = useState(null);
 
     const [loginData, setLoginData] = useState({
         username: "",
@@ -23,6 +29,19 @@ function App() {
         email: "",
         password: "",
     });
+
+    useEffect(() => {
+        const savedUser = localStorage.getItem(AUTH_STORAGE_KEY);
+        if (!savedUser) {
+            return;
+        }
+
+        try {
+            setLoggedInUser(JSON.parse(savedUser));
+        } catch {
+            localStorage.removeItem(AUTH_STORAGE_KEY);
+        }
+    }, []);
 
     const handleLoginChange = (e) => {
         const { name, value } = e.target;
@@ -40,13 +59,20 @@ function App() {
         }));
     };
 
+    const handleFileChange = (e) => {
+        const file = e.target.files?.[0] ?? null;
+        setSelectedFile(file);
+        setAnalysisResult(null);
+        setMessage("");
+    };
+
     const handleLogin = async (e) => {
         e.preventDefault();
         setLoading(true);
         setMessage("");
 
         try {
-            const response = await fetch(`${API_BASE_URL}/login`, {
+            const response = await fetch(`${USER_API_BASE_URL}/login`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
@@ -54,13 +80,25 @@ function App() {
                 body: JSON.stringify(loginData),
             });
 
-            const text = await response.text();
+            const responseText = await response.text();
 
-            if (response.ok) {
-                setMessage("Login successful");
-            } else {
-                setMessage(text || "Login failed");
+            if (!response.ok) {
+                setMessage(responseText || "Login failed");
+                return;
             }
+
+            const user = JSON.parse(responseText);
+            const safeUser = {
+                id: user.id,
+                username: user.username,
+                email: user.email,
+            };
+
+            setLoggedInUser(safeUser);
+            localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(safeUser));
+            setAnalysisResult(null);
+            setSelectedFile(null);
+            setMessage("Login successful. You can upload a photo now.");
         } catch {
             setMessage("Could not connect to backend");
         } finally {
@@ -74,7 +112,7 @@ function App() {
         setMessage("");
 
         try {
-            const response = await fetch(`${API_BASE_URL}/register`, {
+            const response = await fetch(`${USER_API_BASE_URL}/register`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
@@ -85,7 +123,13 @@ function App() {
             const text = await response.text();
 
             if (response.ok) {
-                setMessage("Registration successful");
+                setMode("login");
+                setMessage("Registration successful. Please log in.");
+                setRegisterData({
+                    username: "",
+                    email: "",
+                    password: "",
+                });
             } else {
                 setMessage(text || "Registration failed");
             }
@@ -95,6 +139,90 @@ function App() {
             setLoading(false);
         }
     };
+
+    const handleAnalyzeImage = async (e) => {
+        e.preventDefault();
+
+        if (!selectedFile) {
+            setMessage("Please choose an image first.");
+            return;
+        }
+
+        setLoading(true);
+        setMessage("");
+        setAnalysisResult(null);
+
+        try {
+            const formData = new FormData();
+            formData.append("image", selectedFile);
+
+            const response = await fetch(ANALYZE_IMAGE_URL, {
+                method: "POST",
+                body: formData,
+            });
+
+            const data = await response.json().catch(() => null);
+
+            if (!response.ok) {
+                setMessage(data?.message || "Image analysis failed");
+                return;
+            }
+
+            setAnalysisResult(data);
+            setMessage(data?.message || "Image analyzed successfully.");
+        } catch {
+            setMessage("Could not connect to image analysis service");
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleLogout = () => {
+        setLoggedInUser(null);
+        setSelectedFile(null);
+        setAnalysisResult(null);
+        setMessage("You have been logged out.");
+        localStorage.removeItem(AUTH_STORAGE_KEY);
+        setLoginData({
+            username: "",
+            email: "",
+            password: "",
+        });
+    };
+
+    if (loggedInUser) {
+        return (
+            <div className="auth-page">
+                <div className="auth-card app-card">
+                    <div className="user-bar">
+                        <div>
+                            <h1 className="auth-title">Photo2Go</h1>
+                            <p className="subtitle">
+                                Logged in as <strong>{loggedInUser.username}</strong>
+                            </p>
+                        </div>
+                        <button
+                            type="button"
+                            className="secondary-button"
+                            onClick={handleLogout}
+                        >
+                            Logout
+                        </button>
+                    </div>
+
+                    <UploadForm
+                        selectedFile={selectedFile}
+                        handleFileChange={handleFileChange}
+                        handleAnalyzeImage={handleAnalyzeImage}
+                        loading={loading}
+                        analysisResult={analysisResult}
+                    />
+
+                    <MessageBox message={message} />
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="auth-page">
