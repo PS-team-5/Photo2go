@@ -22,8 +22,8 @@ obj/
 *.sqlite3
 
 # Environment / secrets
-.env
-.env.*
+
+
 appsettings.Development.json
 
 # OS files
