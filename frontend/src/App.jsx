@@ -10,6 +10,17 @@ const USER_API_BASE_URL = "http://localhost:5218/api/user";
 const ANALYZE_IMAGE_URL = "http://localhost:5218/analyze-image";
 const AUTH_STORAGE_KEY = "photo2go-user";
 
+async function readResponsePayload(response) {
+    const contentType = response.headers.get("content-type") || "";
+
+    if (contentType.includes("application/json")) {
+        return response.json().catch(() => null);
+    }
+
+    const text = await response.text().catch(() => "");
+    return text ? { message: text } : null;
+}
+
 function App() {
     const [mode, setMode] = useState("login");
     const [message, setMessage] = useState("");
@@ -161,10 +172,12 @@ function App() {
                 body: formData,
             });
 
-            const data = await response.json().catch(() => null);
+            const data = await readResponsePayload(response);
 
             if (!response.ok) {
-                setMessage(data?.message || "Image analysis failed");
+                setMessage(
+                    data?.message || `Image analysis failed (HTTP ${response.status})`,
+                );
                 return;
             }
 

@@ -1,4 +1,9 @@
 import { useState, useEffect, useRef } from "react";
+
+function formatPercent(value) {
+    return `${Math.round(Number(value || 0) * 100)}%`;
+}
+
 function UploadForm({
     selectedFile,
     handleFileChange,
@@ -8,6 +13,7 @@ function UploadForm({
 }) {
     const analysis = analysisResult?.analysis;
     const file = analysisResult?.file;
+    const similarLocations = analysisResult?.similarLocations ?? [];
     const [previewUrl, setPreviewUrl] = useState(null);
     const fileInputRef = useRef(null);
 
@@ -132,8 +138,72 @@ function UploadForm({
                         </div>
                         <div className="result-item">
                             <span>Confidence</span>
-                            <strong>{Math.round(Number(analysis.confidence || 0) * 100)}%</strong>
+                            <strong>{formatPercent(analysis.confidence)}</strong>
                         </div>
+                    </div>
+                </section>
+            ) : null}
+
+            {analysis && similarLocations.length > 0 ? (
+                <section className="result-card route-card">
+                    <div className="route-header">
+                        <div>
+                            <h2>Similar places route</h2>
+                            <p className="route-subtitle">
+                                Start from the detected place and continue through the most similar locations from the database.
+                            </p>
+                        </div>
+                    </div>
+
+                    <div className="route-timeline">
+                        <article className="route-stop route-stop-start">
+                            <div className="route-marker">Start</div>
+                            <div className="route-content">
+                                <div className="route-topline">
+                                    <strong>{analysis.name}</strong>
+                                    <span className="similarity-badge similarity-badge-primary">
+                                        {formatPercent(analysis.confidence)} confidence
+                                    </span>
+                                </div>
+                                <p>
+                                    {analysis.objectType} in {analysis.city}
+                                </p>
+                                <small>
+                                    {analysis.architectureStyle} | {analysis.period}
+                                </small>
+                            </div>
+                        </article>
+
+                        {similarLocations.map((location, index) => (
+                            <article key={location.id} className="route-stop">
+                                <div className="route-marker">{index + 1}</div>
+                                <div className="route-content">
+                                    <div className="route-topline">
+                                        <strong>{location.name}</strong>
+                                        <span className="similarity-badge">
+                                            {formatPercent(location.similarity)} match
+                                        </span>
+                                    </div>
+                                    <p>{location.city}</p>
+                                    <small>
+                                        {location.architectureStyle} | {location.period}
+                                    </small>
+                                    <div className="route-progress">
+                                        <div
+                                            className="route-progress-bar"
+                                            style={{
+                                                width: `${Math.max(
+                                                    6,
+                                                    Math.round(
+                                                        Number(location.similarity || 0) * 100,
+                                                    ),
+                                                )}%`,
+                                            }}
+                                        />
+                                    </div>
+                                </div>
+                            </article>
+                        ))}
                     </div>
                 </section>
             ) : null}
