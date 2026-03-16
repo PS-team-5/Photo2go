@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";``
 function UploadForm({
     selectedFile,
     handleFileChange,
@@ -7,6 +8,19 @@ function UploadForm({
 }) {
     const analysis = analysisResult?.analysis;
     const file = analysisResult?.file;
+    const [previewUrl, setPreviewUrl] = useState(null);
+
+    useEffect(() => {
+        if (!selectedFile) {
+            setPreviewUrl(null);
+            return;
+        }
+
+        const objectUrl = URL.createObjectURL(selectedFile);
+        setPreviewUrl(objectUrl);
+
+        return () => URL.revokeObjectURL(objectUrl);
+    }, [selectedFile]);
 
     return (
         <div className="upload-section">
@@ -29,8 +43,7 @@ function UploadForm({
                 {selectedFile ? (
                     <div className="image-preview">
                         <p>Image preview</p>
-                        <img
-                            src={URL.createObjectURL(selectedFile)}
+                        <img src={previewUrl}
                             alt="Preview"
                             style={{
                                 maxWidth: "300px",
