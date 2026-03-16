@@ -33,6 +33,7 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 builder.Services.AddScoped<UserService>();
 builder.Services.AddScoped<ImageUploadService>();
 builder.Services.AddScoped<ImageAnalysisService>();
+builder.Services.AddScoped<SimilarPlaceAlgorithService>();
 // Register the concrete AI provider behind an interface so it can be swapped later.
 builder.Services.AddHttpClient<IImageAnalysisClient, OpenAiImageAnalysisClient>((serviceProvider, client) =>
 {

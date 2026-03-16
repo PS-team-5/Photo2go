@@ -12,15 +12,18 @@ public class AnalyzeImageController : ControllerBase
 {
     private readonly ImageAnalysisService _imageAnalysisService;
     private readonly ImageUploadService _imageUploadService;
+    private readonly SimilarPlaceAlgorithService _similarPlaceAlgorithService;
     private readonly ImageUploadOptions _options;
 
     public AnalyzeImageController(
         ImageAnalysisService imageAnalysisService,
         ImageUploadService imageUploadService,
+        SimilarPlaceAlgorithService similarPlaceAlgorithService,
         IOptions<ImageUploadOptions> options)
     {
         _imageAnalysisService = imageAnalysisService;
         _imageUploadService = imageUploadService;
+        _similarPlaceAlgorithService = similarPlaceAlgorithService;
         _options = options.Value;
     }
 
@@ -42,12 +45,16 @@ public class AnalyzeImageController : ControllerBase
         }
 
         var analysisResult = await _imageAnalysisService.AnalyzeAsync(request.Image!, cancellationToken);
+        var similarLocations = await _similarPlaceAlgorithService.FindTopSimilarAsync(
+            analysisResult,
+            cancellationToken: cancellationToken);
 
         var response = new AnalyzeImageResultResponse
         {
             Message = "Nuotrauka sekmingai priimta analizei.",
             File = validationResult.Data!,
-            Analysis = analysisResult
+            Analysis = analysisResult,
+            SimilarLocations = similarLocations
         };
 
         return Ok(response);

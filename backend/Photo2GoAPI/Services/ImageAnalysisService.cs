@@ -39,7 +39,8 @@ public class ImageAnalysisService
 
     private static void ValidateResult(ImageAnalysisResult result)
     {
-        if (string.IsNullOrWhiteSpace(result.ObjectType) ||
+        if (string.IsNullOrWhiteSpace(result.Name) ||
+            string.IsNullOrWhiteSpace(result.ObjectType) ||
             string.IsNullOrWhiteSpace(result.ArchitectureStyle) ||
             string.IsNullOrWhiteSpace(result.Period) ||
             string.IsNullOrWhiteSpace(result.City))

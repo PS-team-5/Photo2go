@@ -93,7 +93,7 @@ public class OpenAiImageAnalysisClient : IImageAnalysisClient
                         {
                             type = "input_text",
                             text =
-                                "Analyze the uploaded image. Return only a valid JSON object with keys: objectType, architectureStyle, period, city, confidence. " +
+                                "Analyze the uploaded image. Return only a valid JSON object with keys: name, objectType, architectureStyle, period, city, confidence. " +
                                 "If a value is unknown, use \"Unknown\". Confidence must be a number from 0 to 1."
                         }
                     }
@@ -107,7 +107,7 @@ public class OpenAiImageAnalysisClient : IImageAnalysisClient
                         {
                             type = "input_text",
                             text =
-                                "Identify the main object or building in the image and infer likely architecture style, historical period, city, and confidence."
+                                "Identify the main object or building in the image (including its likely proper name) and infer likely architecture style, historical period, city, and confidence."
                         },
                         new
                         {
@@ -127,9 +127,10 @@ public class OpenAiImageAnalysisClient : IImageAnalysisClient
                     {
                         type = "object",
                         additionalProperties = false,
-                        required = new[] { "objectType", "architectureStyle", "period", "city", "confidence" },
+                        required = new[] { "name", "objectType", "architectureStyle", "period", "city", "confidence" },
                         properties = new
                         {
+                            name = new { type = "string" },
                             objectType = new { type = "string" },
                             architectureStyle = new { type = "string" },
                             period = new { type = "string" },
