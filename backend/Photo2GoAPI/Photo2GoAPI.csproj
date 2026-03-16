@@ -21,7 +21,6 @@
 
     <ItemGroup>
       <Folder Include="AppDbContext\Data\" />
-      <Folder Include="Model\" />
     </ItemGroup>
 
 </Project>
