@@ -58,42 +58,14 @@ function UploadForm({
                     </p>
                 ) : null}
                 {selectedFile ? (
-                    <div
-                        className="image-preview"
-                        style={{
-                            position: "relative",
-                            display: "inline-block",
-                            width: "fit-content",
-                            marginTop: "10px"
-                        }}
-                    >
-                        <img
-                            src={previewUrl}
-                            alt="Preview"
-                            style={{
-                                display: "block",
-                                maxWidth: "300px",
-                                borderRadius: "8px"
-                            }}
-                        />
+                    <div className="image-preview">
+                        <img src={previewUrl} alt="Preview" />
 
                         <button
                             type="button"
                             onClick={handleRemoveImage}
-                            style={{
-                                position: "absolute",
-                                top: "1px",
-                                right: "1px",
-                                background: "transparent",
-                                border: "none",
-                                color: "#888",
-                                fontSize: "20px",
-                                cursor: "pointer",
-                                fontWeight: "bold",
-                                transition: "color 0.2s"
-                            }}
-                            onMouseEnter={(e) => e.target.style.color = "black"}
-                            onMouseLeave={(e) => e.target.style.color = "#888"}
+                            className="image-remove-button"
+                            aria-label="Remove selected image"
                         >
                             ×
                         </button>
