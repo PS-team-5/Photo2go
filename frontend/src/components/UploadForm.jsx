@@ -26,6 +26,20 @@ function UploadForm({
                         Selected file: <strong>{selectedFile.name}</strong>
                     </p>
                 ) : null}
+                {selectedFile ? (
+                    <div className="image-preview">
+                        <p>Image preview</p>
+                        <img
+                            src={URL.createObjectURL(selectedFile)}
+                            alt="Preview"
+                            style={{
+                                maxWidth: "300px",
+                                marginTop: "10px",
+                                borderRadius: "8px"
+                            }}
+                        />
+                    </div>
+                ) : null}
                 <button type="submit" disabled={loading}>
                     {loading ? "Analyzing..." : "Analyze image"}
                 </button>
