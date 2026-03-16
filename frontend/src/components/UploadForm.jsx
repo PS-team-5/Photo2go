@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";``
+import { useState, useEffect, useRef } from "react";
 function UploadForm({
     selectedFile,
     handleFileChange,
@@ -9,6 +9,7 @@ function UploadForm({
     const analysis = analysisResult?.analysis;
     const file = analysisResult?.file;
     const [previewUrl, setPreviewUrl] = useState(null);
+    const fileInputRef = useRef(null);
 
     useEffect(() => {
         if (!selectedFile) {
@@ -22,6 +23,15 @@ function UploadForm({
         return () => URL.revokeObjectURL(objectUrl);
     }, [selectedFile]);
 
+    const handleRemoveImage = () => {
+        setPreviewUrl(null);
+
+        if (fileInputRef.current) {
+            fileInputRef.current.value = "";
+        }
+        handleFileChange({ target: { files: [] } });
+    };
+
     return (
         <div className="upload-section">
             <form onSubmit={handleAnalyzeImage} className="auth-form">
@@ -29,6 +39,7 @@ function UploadForm({
                     Upload a tourist place photo
                 </label>
                 <input
+                    ref={fileInputRef}
                     id="image-upload"
                     type="file"
                     accept="image/png,image/jpeg,image/webp"
@@ -41,16 +52,45 @@ function UploadForm({
                     </p>
                 ) : null}
                 {selectedFile ? (
-                    <div className="image-preview">
-                        <p>Image preview</p>
-                        <img src={previewUrl}
+                    <div
+                        className="image-preview"
+                        style={{
+                            position: "relative",
+                            display: "inline-block",
+                            width: "fit-content",
+                            marginTop: "10px"
+                        }}
+                    >
+                        <img
+                            src={previewUrl}
                             alt="Preview"
                             style={{
+                                display: "block",
                                 maxWidth: "300px",
-                                marginTop: "10px",
                                 borderRadius: "8px"
                             }}
                         />
+
+                        <button
+                            type="button"
+                            onClick={handleRemoveImage}
+                            style={{
+                                position: "absolute",
+                                top: "1px",
+                                right: "1px",
+                                background: "transparent",
+                                border: "none",
+                                color: "#888",
+                                fontSize: "20px",
+                                cursor: "pointer",
+                                fontWeight: "bold",
+                                transition: "color 0.2s"
+                            }}
+                            onMouseEnter={(e) => e.target.style.color = "black"}
+                            onMouseLeave={(e) => e.target.style.color = "#888"}
+                        >
+                            ×
+                        </button>
                     </div>
                 ) : null}
                 <button type="submit" disabled={loading}>
