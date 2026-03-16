@@ -22,10 +22,15 @@ obj/
 *.sqlite3
 
 # Environment / secrets
-
+.env
 
 appsettings.Development.json
 
 # OS files
 .DS_Store
 Thumbs.db
+
+# SQLite runtime files
+*.sqlite-shm
+*.sqlite-wal
+*.sqlite-journal
