@@ -53,9 +53,29 @@ public class SimilarPlaceAlgorithService
                 ArchitectureStyle = match.Location.ArchitectureStyle,
                 Period = match.Location.Period,
                 City = match.Location.City,
-                Similarity = match.Score
+                Similarity = match.Score,
+                IsOpen = IsLocationOpen(match.Location)
             })
             .ToList();
+    }
+
+    private static bool IsLocationOpen(Location location)
+    {
+        if (location.OpeningTime is null || location.ClosingTime is null)
+        {
+            return false;
+        }
+
+        var currentTime = TimeOnly.FromDateTime(DateTime.Now);
+        var openingTime = location.OpeningTime.Value;
+        var closingTime = location.ClosingTime.Value;
+
+        if (openingTime <= closingTime)
+        {
+            return currentTime >= openingTime && currentTime < closingTime;
+        }
+
+        return currentTime >= openingTime || currentTime < closingTime;
     }
 
     private static (decimal Score, bool IsSamePlace) CalculateSimilarity(ImageAnalysisResult analysis, Location location)
