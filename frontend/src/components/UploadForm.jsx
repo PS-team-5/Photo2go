@@ -4,6 +4,10 @@ function formatPercent(value) {
     return `${Math.round(Number(value || 0) * 100)}%`;
 }
 
+function formatOpenStatus(isOpen) {
+    return isOpen ? "Atidaryta" : "\u0160iuo metu u\u017edaryta";
+}
+
 function UploadForm({
     selectedFile,
     handleFileChange,
@@ -14,6 +18,7 @@ function UploadForm({
     const analysis = analysisResult?.analysis;
     const file = analysisResult?.file;
     const similarLocations = analysisResult?.similarLocations ?? [];
+    const primarySimilarLocation = similarLocations[0] ?? null;
     const [previewUrl, setPreviewUrl] = useState(null);
     const fileInputRef = useRef(null);
 
@@ -112,6 +117,25 @@ function UploadForm({
                             <span>Confidence</span>
                             <strong>{formatPercent(analysis.confidence)}</strong>
                         </div>
+                        {primarySimilarLocation ? (
+                            <div className="result-item result-item-status">
+                                <span>Status</span>
+                                <button
+                                    type="button"
+                                    className={`status-button ${
+                                        primarySimilarLocation.isOpen
+                                            ? "status-button-open"
+                                            : "status-button-closed"
+                                    }`}
+                                >
+                                    {formatOpenStatus(primarySimilarLocation.isOpen)}
+                                </button>
+                                <small>
+                                    Based on first similar route:{" "}
+                                    <strong>{primarySimilarLocation.name}</strong>
+                                </small>
+                            </div>
+                        ) : null}
                     </div>
                 </section>
             ) : null}
@@ -157,6 +181,15 @@ function UploadForm({
                                         </span>
                                     </div>
                                     <p>{location.city}</p>
+                                    <p
+                                        className={`location-status ${
+                                            location.isOpen
+                                                ? "location-status-open"
+                                                : "location-status-closed"
+                                        }`}
+                                    >
+                                        {formatOpenStatus(location.isOpen)}
+                                    </p>
                                     <small>
                                         {location.architectureStyle} | {location.period}
                                     </small>
