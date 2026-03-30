@@ -8,5 +8,6 @@ public class SimilarLocationResult
     public required string Period { get; init; }
     public required string City { get; init; }
     public decimal Similarity { get; init; }
+    public bool IsOpen { get; init; }
 }
 
