@@ -7,6 +7,7 @@ namespace Photo2GoAPI.Services;
 
 public class ImageAnalysisService
 {
+    private const decimal MinimumRecognizedConfidence = 0.7m;
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
     private readonly IImageAnalysisClient _imageAnalysisClient;
 
@@ -51,6 +52,11 @@ public class ImageAnalysisService
         if (result.Confidence < 0 || result.Confidence > 1)
         {
             throw new AiResponseFormatException("AI confidence turi buti tarp 0 ir 1.");
+        }
+
+        if (result.Confidence < MinimumRecognizedConfidence)
+        {
+            throw new ObjectNotRecognizedException(result.Confidence, MinimumRecognizedConfidence);
         }
     }
 }

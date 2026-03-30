@@ -74,6 +74,16 @@ app.UseExceptionHandler(errorApp =>
                     maxFileSizeInBytes = imageUploadOptions.MaxFileSizeInBytes
                 });
                 return;
+            case ObjectNotRecognizedException:
+                context.Response.StatusCode = StatusCodes.Status400BadRequest;
+                var objectNotRecognizedException = (ObjectNotRecognizedException)exception;
+                await context.Response.WriteAsJsonAsync(new
+                {
+                    message = "Objektas neatpazintas. Ikelkite kita nuotrauka.",
+                    confidence = objectNotRecognizedException.Confidence,
+                    minimumConfidence = objectNotRecognizedException.MinimumConfidence
+                });
+                return;
             case AiTimeoutException:
                 context.Response.StatusCode = StatusCodes.Status504GatewayTimeout;
                 await context.Response.WriteAsJsonAsync(new
