@@ -186,6 +186,35 @@
     overflow-wrap: anywhere;
 }
 
+.result-item-status {
+    justify-content: space-between;
+}
+
+.result-item-status small {
+    color: #64748b;
+    line-height: 1.4;
+}
+
+.status-button {
+    width: 100%;
+    padding: 10px 12px;
+    border: none;
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: 800;
+    cursor: default;
+}
+
+.status-button-open {
+    background: #dcfce7;
+    color: #166534;
+}
+
+.status-button-closed {
+    background: #fee2e2;
+    color: #991b1b;
+}
+
 .route-card {
     background:
         radial-gradient(circle at top right, rgba(37, 99, 235, 0.12), transparent 28%),
@@ -272,6 +301,25 @@
     margin: 0 0 6px;
     color: #1e293b;
     font-weight: 600;
+}
+
+.location-status {
+    display: inline-flex;
+    margin: 0 0 8px;
+    padding: 6px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 800;
+}
+
+.location-status-open {
+    background: #dcfce7;
+    color: #166534;
+}
+
+.location-status-closed {
+    background: #fee2e2;
+    color: #991b1b;
 }
 
 .route-content small {
