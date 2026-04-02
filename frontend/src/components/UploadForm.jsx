@@ -8,6 +8,10 @@ function formatOpenStatus(isOpen) {
     return isOpen ? "Atidaryta" : "\u0160iuo metu u\u017edaryta";
 }
 
+function formatUnescoStatus(isUnescoProtected) {
+    return isUnescoProtected ? "Taip" : "Ne";
+}
+
 function UploadForm({
     selectedFile,
     handleFileChange,
@@ -181,6 +185,10 @@ function UploadForm({
                                         </span>
                                     </div>
                                     <p>{location.city}</p>
+                                    <p className="location-meta">
+                                        {location.objectType} | {location.category} | UNESCO:{" "}
+                                        {formatUnescoStatus(location.isUnescoProtected)}
+                                    </p>
                                     <p
                                         className={`location-status ${
                                             location.isOpen

@@ -50,6 +50,9 @@ public class SimilarPlaceAlgorithService
             {
                 Id = match.Location.Id,
                 Name = match.Location.Name,
+                ObjectType = match.Location.ObjectType,
+                Category = match.Location.Category,
+                IsUnescoProtected = IsUnescoProtected(match.Location),
                 ArchitectureStyle = match.Location.ArchitectureStyle,
                 Period = match.Location.Period,
                 City = match.Location.City,
@@ -76,6 +79,21 @@ public class SimilarPlaceAlgorithService
         }
 
         return currentTime >= openingTime || currentTime < closingTime;
+    }
+
+    private static bool IsUnescoProtected(Location location)
+    {
+        if (string.IsNullOrWhiteSpace(location.IsUnescoProtected))
+        {
+            return false;
+        }
+
+        var value = location.IsUnescoProtected.Trim();
+        return value.Equals("yes", StringComparison.OrdinalIgnoreCase) ||
+               value.Equals("true", StringComparison.OrdinalIgnoreCase) ||
+               value.Equals("1", StringComparison.OrdinalIgnoreCase) ||
+               value.Equals("y", StringComparison.OrdinalIgnoreCase) ||
+               value.Equals("taip", StringComparison.OrdinalIgnoreCase);
     }
 
     private static (decimal Score, bool IsSamePlace) CalculateSimilarity(ImageAnalysisResult analysis, Location location)
