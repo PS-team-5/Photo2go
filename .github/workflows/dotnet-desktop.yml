@@ -20,7 +20,6 @@ concurrency:
 
 env:
   SOLUTION_NAME: Photo2GoAPI.sln
-  BACKEND_PROJECT_PATH: backend/Photo2GoAPI/Photo2GoAPI.csproj
   FRONTEND_PATH: frontend
 
 jobs:
@@ -72,23 +71,8 @@ jobs:
         with:
           dotnet-version: 8.0.x
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: npm
-          cache-dependency-path: frontend/package-lock.json
-
       - name: Restore backend
         run: dotnet restore ${{ env.SOLUTION_NAME }}
 
       - name: Test backend
         run: dotnet test ${{ env.SOLUTION_NAME }} --configuration Release --no-restore --verbosity normal
-
-      - name: Install frontend dependencies
-        run: npm ci
-        working-directory: ${{ env.FRONTEND_PATH }}
-
-      - name: Lint frontend
-        run: npm run lint
-        working-directory: ${{ env.FRONTEND_PATH }}
