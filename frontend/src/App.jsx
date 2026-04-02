@@ -23,11 +23,32 @@ async function readResponsePayload(response) {
 
 function App() {
     const [mode, setMode] = useState("login");
-    const [message, setMessage] = useState("");
+    const [messageState, setMessageState] = useState({ text: "", type: "info" });
     const [loading, setLoading] = useState(false);
     const [loggedInUser, setLoggedInUser] = useState(null);
     const [selectedFile, setSelectedFile] = useState(null);
     const [analysisResult, setAnalysisResult] = useState(null);
+
+    const setMessage = (text, type = "info") => {
+        setMessageState({ text, type });
+    };
+
+    useEffect(() => {
+        if (!messageState.text) {
+            return;
+        }
+
+        // Auto-hide info/success notifications. Keep errors until dismissed.
+        if (messageState.type === "error") {
+            return;
+        }
+
+        const timerId = window.setTimeout(() => {
+            setMessageState({ text: "", type: "info" });
+        }, 4000);
+
+        return () => window.clearTimeout(timerId);
+    }, [messageState.text, messageState.type]);
 
     const [loginData, setLoginData] = useState({
         username: "",
@@ -94,7 +115,7 @@ function App() {
             const responseText = await response.text();
 
             if (!response.ok) {
-                setMessage(responseText || "Login failed");
+                setMessage(responseText || "Login failed", "error");
                 return;
             }
 
@@ -109,9 +130,9 @@ function App() {
             localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(safeUser));
             setAnalysisResult(null);
             setSelectedFile(null);
-            setMessage("Login successful. You can upload a photo now.");
+            setMessage("Login successful. You can upload a photo now.", "success");
         } catch {
-            setMessage("Could not connect to backend");
+            setMessage("Could not connect to backend", "error");
         } finally {
             setLoading(false);
         }
@@ -135,17 +156,17 @@ function App() {
 
             if (response.ok) {
                 setMode("login");
-                setMessage("Registration successful. Please log in.");
+                setMessage("Registration successful. Please log in.", "success");
                 setRegisterData({
                     username: "",
                     email: "",
                     password: "",
                 });
             } else {
-                setMessage(text || "Registration failed");
+                setMessage(text || "Registration failed", "error");
             }
         } catch {
-            setMessage("Could not connect to backend");
+            setMessage("Could not connect to backend", "error");
         } finally {
             setLoading(false);
         }
@@ -155,7 +176,7 @@ function App() {
         e.preventDefault();
 
         if (!selectedFile) {
-            setMessage("Please choose an image first.");
+            setMessage("Please choose an image first.", "error");
             return;
         }
 
@@ -177,14 +198,20 @@ function App() {
             if (!response.ok) {
                 setMessage(
                     data?.message || `Image analysis failed (HTTP ${response.status})`,
+                    "error",
                 );
                 return;
             }
 
             setAnalysisResult(data);
-            setMessage(data?.message || "Image analyzed successfully.");
+            const routeMessage = data?.routeMessage || data?.message || "Image analyzed successfully.";
+            const routeGenerated = data?.routeGenerated;
+            setMessage(
+                routeMessage,
+                routeGenerated === false ? "error" : "success",
+            );
         } catch {
-            setMessage("Could not connect to image analysis service");
+            setMessage("Could not connect to image analysis service", "error");
         } finally {
             setLoading(false);
         }
@@ -194,7 +221,7 @@ function App() {
         setLoggedInUser(null);
         setSelectedFile(null);
         setAnalysisResult(null);
-        setMessage("You have been logged out.");
+        setMessage("You have been logged out.", "info");
         localStorage.removeItem(AUTH_STORAGE_KEY);
         setLoginData({
             username: "",
@@ -206,6 +233,11 @@ function App() {
     if (loggedInUser) {
         return (
             <div className="auth-page">
+                <MessageBox
+                    message={messageState.text}
+                    type={messageState.type}
+                    onClose={() => setMessage("")}
+                />
                 <div className="auth-card app-card">
                     <div className="user-bar">
                         <div>
@@ -230,8 +262,6 @@ function App() {
                         loading={loading}
                         analysisResult={analysisResult}
                     />
-
-                    <MessageBox message={message} />
                 </div>
             </div>
         );
@@ -239,6 +269,11 @@ function App() {
 
     return (
         <div className="auth-page">
+            <MessageBox
+                message={messageState.text}
+                type={messageState.type}
+                onClose={() => setMessage("")}
+            />
             <div className="auth-card">
                 <h1 className="auth-title">Photo2Go</h1>
                 <p className="subtitle">User authentication</p>
@@ -260,8 +295,6 @@ function App() {
                         loading={loading}
                     />
                 )}
-
-                <MessageBox message={message} />
             </div>
         </div>
     );
