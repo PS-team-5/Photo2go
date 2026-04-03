@@ -13,17 +13,20 @@ public class AnalyzeImageController : ControllerBase
     private readonly ImageAnalysisService _imageAnalysisService;
     private readonly ImageUploadService _imageUploadService;
     private readonly SimilarPlaceAlgorithService _similarPlaceAlgorithService;
+    private readonly GeneratedRouteService _generatedRouteService;
     private readonly ImageUploadOptions _options;
 
     public AnalyzeImageController(
         ImageAnalysisService imageAnalysisService,
         ImageUploadService imageUploadService,
         SimilarPlaceAlgorithService similarPlaceAlgorithService,
+        GeneratedRouteService generatedRouteService,
         IOptions<ImageUploadOptions> options)
     {
         _imageAnalysisService = imageAnalysisService;
         _imageUploadService = imageUploadService;
         _similarPlaceAlgorithService = similarPlaceAlgorithService;
+        _generatedRouteService = generatedRouteService;
         _options = options.Value;
     }
 
@@ -33,6 +36,22 @@ public class AnalyzeImageController : ControllerBase
         [FromForm] AnalyzeImageRequest request,
         CancellationToken cancellationToken)
     {
+        if (request.UserId <= 0)
+        {
+            return BadRequest(new
+            {
+                message = "Vartotojo ID yra privalomas."
+            });
+        }
+
+        if (!await _generatedRouteService.UserExistsAsync(request.UserId, cancellationToken))
+        {
+            return NotFound(new
+            {
+                message = "Vartotojas nerastas."
+            });
+        }
+
         var validationResult = _imageUploadService.Validate(request.Image);
 
         if (!validationResult.IsValid)
@@ -49,10 +68,17 @@ public class AnalyzeImageController : ControllerBase
             analysisResult,
             cancellationToken: cancellationToken);
 
+        await _generatedRouteService.SaveAsync(
+            request.UserId,
+            validationResult.Data!,
+            analysisResult,
+            similarLocations,
+            cancellationToken);
+
         var routeGenerated = similarLocations.Count > 0;
         var routeMessage = routeGenerated
-            ? "Mar\u0161rutas s\u0117kmingai sugeneruotas."
-            : "Mar\u0161rutas nesugeneruotas: nerasta pana\u0161i\u0173 viet\u0173 duomen\u0173 baz\u0117je.";
+            ? "Marsrutas sekmingai sugeneruotas."
+            : "Marsrutas nesugeneruotas: nerasta panasiu vietu duomenu bazeje.";
 
         var response = new AnalyzeImageResultResponse
         {

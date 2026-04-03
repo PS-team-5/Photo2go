@@ -28,6 +28,9 @@ function App() {
     const [loggedInUser, setLoggedInUser] = useState(null);
     const [selectedFile, setSelectedFile] = useState(null);
     const [analysisResult, setAnalysisResult] = useState(null);
+    const [routeHistory, setRouteHistory] = useState([]);
+    const [routesLoading, setRoutesLoading] = useState(false);
+    const [routesError, setRoutesError] = useState("");
 
     const setMessage = (text, type = "info") => {
         setMessageState({ text, type });
@@ -74,6 +77,85 @@ function App() {
             localStorage.removeItem(AUTH_STORAGE_KEY);
         }
     }, []);
+
+    useEffect(() => {
+        if (!loggedInUser?.id) {
+            setRouteHistory([]);
+            setRoutesError("");
+            setRoutesLoading(false);
+            return;
+        }
+
+        let isCancelled = false;
+
+        const loadRoutes = async () => {
+            setRoutesLoading(true);
+            setRoutesError("");
+
+            try {
+                const response = await fetch(
+                    `${USER_API_BASE_URL}/${loggedInUser.id}/routes`,
+                );
+                const data = await readResponsePayload(response);
+
+                if (isCancelled) {
+                    return;
+                }
+
+                if (!response.ok) {
+                    setRouteHistory([]);
+                    setRoutesError(data?.message || "Could not load your saved routes.");
+                    return;
+                }
+
+                setRouteHistory(Array.isArray(data) ? data : []);
+            } catch {
+                if (!isCancelled) {
+                    setRouteHistory([]);
+                    setRoutesError("Could not connect to backend to load your routes.");
+                }
+            } finally {
+                if (!isCancelled) {
+                    setRoutesLoading(false);
+                }
+            }
+        };
+
+        loadRoutes();
+
+        return () => {
+            isCancelled = true;
+        };
+    }, [loggedInUser?.id]);
+
+    const refreshRouteHistory = async (userId) => {
+        if (!userId) {
+            setRouteHistory([]);
+            setRoutesError("");
+            return;
+        }
+
+        setRoutesLoading(true);
+        setRoutesError("");
+
+        try {
+            const response = await fetch(`${USER_API_BASE_URL}/${userId}/routes`);
+            const data = await readResponsePayload(response);
+
+            if (!response.ok) {
+                setRouteHistory([]);
+                setRoutesError(data?.message || "Could not load your saved routes.");
+                return;
+            }
+
+            setRouteHistory(Array.isArray(data) ? data : []);
+        } catch {
+            setRouteHistory([]);
+            setRoutesError("Could not connect to backend to load your routes.");
+        } finally {
+            setRoutesLoading(false);
+        }
+    };
 
     const handleLoginChange = (e) => {
         const { name, value } = e.target;
@@ -186,6 +268,7 @@ function App() {
 
         try {
             const formData = new FormData();
+            formData.append("userId", String(loggedInUser.id));
             formData.append("image", selectedFile);
 
             const response = await fetch(ANALYZE_IMAGE_URL, {
@@ -210,6 +293,7 @@ function App() {
                 routeMessage,
                 routeGenerated === false ? "error" : "success",
             );
+            await refreshRouteHistory(loggedInUser.id);
         } catch {
             setMessage("Could not connect to image analysis service", "error");
         } finally {
@@ -221,6 +305,9 @@ function App() {
         setLoggedInUser(null);
         setSelectedFile(null);
         setAnalysisResult(null);
+        setRouteHistory([]);
+        setRoutesError("");
+        setRoutesLoading(false);
         setMessage("You have been logged out.", "info");
         localStorage.removeItem(AUTH_STORAGE_KEY);
         setLoginData({
@@ -261,6 +348,9 @@ function App() {
                         handleAnalyzeImage={handleAnalyzeImage}
                         loading={loading}
                         analysisResult={analysisResult}
+                        routeHistory={routeHistory}
+                        routesLoading={routesLoading}
+                        routesError={routesError}
                     />
                 </div>
             </div>

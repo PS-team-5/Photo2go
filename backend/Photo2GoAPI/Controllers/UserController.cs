@@ -9,10 +9,12 @@ namespace Photo2GoAPI.Controllers;
 public class UserController : ControllerBase
 {
     private readonly UserService _userService;
+    private readonly GeneratedRouteService _generatedRouteService;
 
-    public UserController(UserService userService)
+    public UserController(UserService userService, GeneratedRouteService generatedRouteService)
     {
         _userService = userService;
+        _generatedRouteService = generatedRouteService;
     }
 
     [HttpPost("login")]
@@ -39,5 +41,17 @@ public class UserController : ControllerBase
         }
 
         return Ok(user);
+    }
+
+    [HttpGet("{userId:int}/routes")]
+    public async Task<IActionResult> GetRoutes(int userId, CancellationToken cancellationToken)
+    {
+        if (!await _generatedRouteService.UserExistsAsync(userId, cancellationToken))
+        {
+            return NotFound("Vartotojas nerastas");
+        }
+
+        var routes = await _generatedRouteService.GetByUserIdAsync(userId, cancellationToken);
+        return Ok(routes);
     }
 }

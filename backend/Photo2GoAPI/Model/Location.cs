@@ -18,7 +18,7 @@ public class Location
     public string Province { get; set; } = null!;
     public string Category { get; set; } = null!;
     public string BuildingMaterials { get; set; } = null!;
-    public string IsUnescoProtected { get; set; } = null!;
+    public string IsUnescoProtected { get; set; } = string.Empty;
     public TimeOnly? OpeningTime { get; set; }
     public TimeOnly? ClosingTime { get; set; }
 }
