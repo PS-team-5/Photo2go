@@ -36,15 +36,10 @@ public class AnalyzeImageController : ControllerBase
         [FromForm] AnalyzeImageRequest request,
         CancellationToken cancellationToken)
     {
-        if (request.UserId <= 0)
-        {
-            return BadRequest(new
-            {
-                message = "Vartotojo ID yra privalomas."
-            });
-        }
+        var shouldSaveGeneratedRoute = request.UserId is > 0;
 
-        if (!await _generatedRouteService.UserExistsAsync(request.UserId, cancellationToken))
+        if (shouldSaveGeneratedRoute &&
+            !await _generatedRouteService.UserExistsAsync(request.UserId!.Value, cancellationToken))
         {
             return NotFound(new
             {
@@ -68,12 +63,15 @@ public class AnalyzeImageController : ControllerBase
             analysisResult,
             cancellationToken: cancellationToken);
 
-        await _generatedRouteService.SaveAsync(
-            request.UserId,
-            validationResult.Data!,
-            analysisResult,
-            similarLocations,
-            cancellationToken);
+        if (shouldSaveGeneratedRoute)
+        {
+            await _generatedRouteService.SaveAsync(
+                request.UserId!.Value,
+                validationResult.Data!,
+                analysisResult,
+                similarLocations,
+                cancellationToken);
+        }
 
         var routeGenerated = similarLocations.Count > 0;
         var routeMessage = routeGenerated
