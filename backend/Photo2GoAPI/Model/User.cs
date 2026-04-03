@@ -27,4 +27,6 @@ public class User
     [Column("password")]
     [MaxLength(255)]
     public string Password { get; set; } = string.Empty;
+
+    public ICollection<GeneratedRoute> GeneratedRoutes { get; set; } = new List<GeneratedRoute>();
 }

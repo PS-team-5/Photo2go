@@ -10,6 +10,17 @@ const USER_API_BASE_URL = "http://localhost:5218/api/user";
 const ANALYZE_IMAGE_URL = "http://localhost:5218/analyze-image";
 const AUTH_STORAGE_KEY = "photo2go-user";
 
+async function readResponsePayload(response) {
+    const contentType = response.headers.get("content-type") || "";
+
+    if (contentType.includes("application/json")) {
+        return response.json().catch(() => null);
+    }
+
+    const text = await response.text().catch(() => "");
+    return text ? { message: text } : null;
+}
+
 function App() {
     const [mode, setMode] = useState("login");
     const [message, setMessage] = useState("");
@@ -17,6 +28,9 @@ function App() {
     const [loggedInUser, setLoggedInUser] = useState(null);
     const [selectedFile, setSelectedFile] = useState(null);
     const [analysisResult, setAnalysisResult] = useState(null);
+    const [routeHistory, setRouteHistory] = useState([]);
+    const [routesLoading, setRoutesLoading] = useState(false);
+    const [routesError, setRoutesError] = useState("");
 
     const [loginData, setLoginData] = useState({
         username: "",
@@ -42,6 +56,85 @@ function App() {
             localStorage.removeItem(AUTH_STORAGE_KEY);
         }
     }, []);
+
+    useEffect(() => {
+        if (!loggedInUser?.id) {
+            setRouteHistory([]);
+            setRoutesError("");
+            setRoutesLoading(false);
+            return;
+        }
+
+        let isCancelled = false;
+
+        const loadRoutes = async () => {
+            setRoutesLoading(true);
+            setRoutesError("");
+
+            try {
+                const response = await fetch(
+                    `${USER_API_BASE_URL}/${loggedInUser.id}/routes`,
+                );
+                const data = await readResponsePayload(response);
+
+                if (isCancelled) {
+                    return;
+                }
+
+                if (!response.ok) {
+                    setRouteHistory([]);
+                    setRoutesError(data?.message || "Could not load your saved routes.");
+                    return;
+                }
+
+                setRouteHistory(Array.isArray(data) ? data : []);
+            } catch {
+                if (!isCancelled) {
+                    setRouteHistory([]);
+                    setRoutesError("Could not connect to backend to load your routes.");
+                }
+            } finally {
+                if (!isCancelled) {
+                    setRoutesLoading(false);
+                }
+            }
+        };
+
+        loadRoutes();
+
+        return () => {
+            isCancelled = true;
+        };
+    }, [loggedInUser?.id]);
+
+    const refreshRouteHistory = async (userId) => {
+        if (!userId) {
+            setRouteHistory([]);
+            setRoutesError("");
+            return;
+        }
+
+        setRoutesLoading(true);
+        setRoutesError("");
+
+        try {
+            const response = await fetch(`${USER_API_BASE_URL}/${userId}/routes`);
+            const data = await readResponsePayload(response);
+
+            if (!response.ok) {
+                setRouteHistory([]);
+                setRoutesError(data?.message || "Could not load your saved routes.");
+                return;
+            }
+
+            setRouteHistory(Array.isArray(data) ? data : []);
+        } catch {
+            setRouteHistory([]);
+            setRoutesError("Could not connect to backend to load your routes.");
+        } finally {
+            setRoutesLoading(false);
+        }
+    };
 
     const handleLoginChange = (e) => {
         const { name, value } = e.target;
@@ -154,6 +247,7 @@ function App() {
 
         try {
             const formData = new FormData();
+            formData.append("userId", String(loggedInUser.id));
             formData.append("image", selectedFile);
 
             const response = await fetch(ANALYZE_IMAGE_URL, {
@@ -161,15 +255,18 @@ function App() {
                 body: formData,
             });
 
-            const data = await response.json().catch(() => null);
+            const data = await readResponsePayload(response);
 
             if (!response.ok) {
-                setMessage(data?.message || "Image analysis failed");
+                setMessage(
+                    data?.message || `Image analysis failed (HTTP ${response.status})`,
+                );
                 return;
             }
 
             setAnalysisResult(data);
             setMessage(data?.message || "Image analyzed successfully.");
+            await refreshRouteHistory(loggedInUser.id);
         } catch {
             setMessage("Could not connect to image analysis service");
         } finally {
@@ -181,6 +278,9 @@ function App() {
         setLoggedInUser(null);
         setSelectedFile(null);
         setAnalysisResult(null);
+        setRouteHistory([]);
+        setRoutesError("");
+        setRoutesLoading(false);
         setMessage("You have been logged out.");
         localStorage.removeItem(AUTH_STORAGE_KEY);
         setLoginData({
@@ -216,6 +316,9 @@ function App() {
                         handleAnalyzeImage={handleAnalyzeImage}
                         loading={loading}
                         analysisResult={analysisResult}
+                        routeHistory={routeHistory}
+                        routesLoading={routesLoading}
+                        routesError={routesError}
                     />
 
                     <MessageBox message={message} />

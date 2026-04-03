@@ -31,6 +31,7 @@ builder.Services.Configure<FormOptions>(options =>
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection")));
 builder.Services.AddScoped<UserService>();
+builder.Services.AddScoped<GeneratedRouteService>();
 builder.Services.AddScoped<ImageUploadService>();
 builder.Services.AddScoped<ImageAnalysisService>();
 builder.Services.AddScoped<SimilarPlaceAlgorithService>();

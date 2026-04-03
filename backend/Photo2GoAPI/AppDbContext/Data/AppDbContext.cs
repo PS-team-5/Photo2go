@@ -10,11 +10,18 @@ public class AppDbContext : DbContext
     }
 
     public DbSet<User> Users { get; set; } = null!;
-    public DbSet<Location> Locations { get; set; }
+    public DbSet<Location> Locations { get; set; } = null!;
+    public DbSet<GeneratedRoute> GeneratedRoutes { get; set; } = null!;
     
     protected override void OnModelCreating(ModelBuilder modelBuilder)
 {
     base.OnModelCreating(modelBuilder);
+
+    modelBuilder.Entity<GeneratedRoute>()
+        .HasOne(route => route.User)
+        .WithMany(user => user.GeneratedRoutes)
+        .HasForeignKey(route => route.UserId)
+        .OnDelete(DeleteBehavior.Cascade);
 
     modelBuilder.Entity<Location>().HasData(
         new Location { 
