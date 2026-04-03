@@ -19,4 +19,6 @@ public class Location
     public string Category { get; set; } = null!;
     public string BuildingMaterials { get; set; } = null!;
     public string IsUnescoProtected { get; set; } = string.Empty;
+    public TimeOnly? OpeningTime { get; set; }
+    public TimeOnly? ClosingTime { get; set; }
 }

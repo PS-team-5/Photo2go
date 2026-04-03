@@ -5,6 +5,14 @@ function formatPercent(value) {
     return `${Math.round(Number(value || 0) * 100)}%`;
 }
 
+function formatOpenStatus(isOpen) {
+    return isOpen ? "Atidaryta" : "Siuo metu uzdaryta";
+}
+
+function formatUnescoStatus(isUnescoProtected) {
+    return isUnescoProtected ? "Taip" : "Ne";
+}
+
 function formatRouteDate(value) {
     if (!value) {
         return "";
@@ -39,6 +47,7 @@ function UploadForm({
     const analysis = analysisResult?.analysis;
     const file = analysisResult?.file;
     const similarLocations = analysisResult?.similarLocations ?? [];
+    const primarySimilarLocation = similarLocations[0] ?? null;
     const [previewUrl, setPreviewUrl] = useState(null);
     const [expandedRouteId, setExpandedRouteId] = useState(null);
     const fileInputRef = useRef(null);
@@ -91,42 +100,13 @@ function UploadForm({
                     </p>
                 ) : null}
                 {selectedFile ? (
-                    <div
-                        className="image-preview"
-                        style={{
-                            position: "relative",
-                            display: "inline-block",
-                            width: "fit-content",
-                            marginTop: "10px",
-                        }}
-                    >
-                        <img
-                            src={previewUrl}
-                            alt="Preview"
-                            style={{
-                                display: "block",
-                                maxWidth: "300px",
-                                borderRadius: "8px",
-                            }}
-                        />
-
+                    <div className="image-preview">
+                        <img src={previewUrl} alt="Preview" />
                         <button
                             type="button"
                             onClick={handleRemoveImage}
-                            style={{
-                                position: "absolute",
-                                top: "1px",
-                                right: "1px",
-                                background: "transparent",
-                                border: "none",
-                                color: "#888",
-                                fontSize: "20px",
-                                cursor: "pointer",
-                                fontWeight: "bold",
-                                transition: "color 0.2s",
-                            }}
-                            onMouseEnter={(e) => (e.target.style.color = "black")}
-                            onMouseLeave={(e) => (e.target.style.color = "#888")}
+                            className="image-remove-button"
+                            aria-label="Remove selected image"
                         >
                             x
                         </button>
@@ -173,16 +153,106 @@ function UploadForm({
                             <span>Confidence</span>
                             <strong>{formatPercent(analysis.confidence)}</strong>
                         </div>
+                        {primarySimilarLocation ? (
+                            <div className="result-item result-item-status">
+                                <span>Status</span>
+                                <button
+                                    type="button"
+                                    className={`status-button ${
+                                        primarySimilarLocation.isOpen
+                                            ? "status-button-open"
+                                            : "status-button-closed"
+                                    }`}
+                                >
+                                    {formatOpenStatus(primarySimilarLocation.isOpen)}
+                                </button>
+                                <small>
+                                    Based on first similar route:{" "}
+                                    <strong>{primarySimilarLocation.name}</strong>
+                                </small>
+                            </div>
+                        ) : null}
                     </div>
                 </section>
             ) : null}
 
-            <RouteTimeline
-                title="Similar places route"
-                subtitle="Start from the detected place and continue through the most similar locations from the database."
-                analysis={analysis}
-                similarLocations={similarLocations}
-            />
+            {analysis && similarLocations.length > 0 ? (
+                <section className="result-card route-card">
+                    <div className="route-header">
+                        <div>
+                            <h2>Similar places route</h2>
+                            <p className="route-subtitle">
+                                Start from the detected place and continue through the most
+                                similar locations from the database.
+                            </p>
+                        </div>
+                    </div>
+
+                    <div className="route-timeline">
+                        <article className="route-stop route-stop-start">
+                            <div className="route-marker">Start</div>
+                            <div className="route-content">
+                                <div className="route-topline">
+                                    <strong>{analysis.name}</strong>
+                                    <span className="similarity-badge similarity-badge-primary">
+                                        {formatPercent(analysis.confidence)} confidence
+                                    </span>
+                                </div>
+                                <p>
+                                    {analysis.objectType} in {analysis.city}
+                                </p>
+                                <small>
+                                    {analysis.architectureStyle} | {analysis.period}
+                                </small>
+                            </div>
+                        </article>
+
+                        {similarLocations.map((location, index) => (
+                            <article key={location.id} className="route-stop">
+                                <div className="route-marker">{index + 1}</div>
+                                <div className="route-content">
+                                    <div className="route-topline">
+                                        <strong>{location.name}</strong>
+                                        <span className="similarity-badge">
+                                            {formatPercent(location.similarity)} match
+                                        </span>
+                                    </div>
+                                    <p>{location.city}</p>
+                                    <p className="location-meta">
+                                        {location.objectType} | {location.category} | UNESCO:{" "}
+                                        {formatUnescoStatus(location.isUnescoProtected)}
+                                    </p>
+                                    <p
+                                        className={`location-status ${
+                                            location.isOpen
+                                                ? "location-status-open"
+                                                : "location-status-closed"
+                                        }`}
+                                    >
+                                        {formatOpenStatus(location.isOpen)}
+                                    </p>
+                                    <small>
+                                        {location.architectureStyle} | {location.period}
+                                    </small>
+                                    <div className="route-progress">
+                                        <div
+                                            className="route-progress-bar"
+                                            style={{
+                                                width: `${Math.max(
+                                                    6,
+                                                    Math.round(
+                                                        Number(location.similarity || 0) * 100,
+                                                    ),
+                                                )}%`,
+                                            }}
+                                        />
+                                    </div>
+                                </div>
+                            </article>
+                        ))}
+                    </div>
+                </section>
+            ) : null}
 
             <section className="result-card route-history-section">
                 <div className="route-header">
@@ -253,9 +323,7 @@ function UploadForm({
 
                                         <span className="route-history-action">
                                             <span>
-                                                {isExpanded
-                                                    ? "Hide route"
-                                                    : "Show route"}
+                                                {isExpanded ? "Hide route" : "Show route"}
                                             </span>
                                             <span
                                                 className={`route-history-chevron${

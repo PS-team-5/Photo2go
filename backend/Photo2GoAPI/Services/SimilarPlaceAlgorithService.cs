@@ -50,12 +50,50 @@ public class SimilarPlaceAlgorithService
             {
                 Id = match.Location.Id,
                 Name = match.Location.Name,
+                ObjectType = match.Location.ObjectType,
+                Category = match.Location.Category,
+                IsUnescoProtected = IsUnescoProtected(match.Location),
                 ArchitectureStyle = match.Location.ArchitectureStyle,
                 Period = match.Location.Period,
                 City = match.Location.City,
-                Similarity = match.Score
+                Similarity = match.Score,
+                IsOpen = IsLocationOpen(match.Location)
             })
             .ToList();
+    }
+
+    private static bool IsLocationOpen(Location location)
+    {
+        if (location.OpeningTime is null || location.ClosingTime is null)
+        {
+            return false;
+        }
+
+        var currentTime = TimeOnly.FromDateTime(DateTime.Now);
+        var openingTime = location.OpeningTime.Value;
+        var closingTime = location.ClosingTime.Value;
+
+        if (openingTime <= closingTime)
+        {
+            return currentTime >= openingTime && currentTime < closingTime;
+        }
+
+        return currentTime >= openingTime || currentTime < closingTime;
+    }
+
+    private static bool IsUnescoProtected(Location location)
+    {
+        if (string.IsNullOrWhiteSpace(location.IsUnescoProtected))
+        {
+            return false;
+        }
+
+        var value = location.IsUnescoProtected.Trim();
+        return value.Equals("yes", StringComparison.OrdinalIgnoreCase) ||
+               value.Equals("true", StringComparison.OrdinalIgnoreCase) ||
+               value.Equals("1", StringComparison.OrdinalIgnoreCase) ||
+               value.Equals("y", StringComparison.OrdinalIgnoreCase) ||
+               value.Equals("taip", StringComparison.OrdinalIgnoreCase);
     }
 
     private static (decimal Score, bool IsSamePlace) CalculateSimilarity(ImageAnalysisResult analysis, Location location)

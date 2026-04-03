@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Photo2GoAPI.Data;
 
@@ -10,9 +11,11 @@ using Photo2GoAPI.Data;
 namespace Photo2GoAPI.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class Photo2GoDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260402080855_AddRoutesTable")]
+    partial class AddRoutesTable
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "8.0.0");
@@ -221,6 +224,36 @@ namespace Photo2GoAPI.Migrations
                             Period = "21st century",
                             Province = "Vilnius County"
                         });
+                });
+
+            modelBuilder.Entity("Photo2GoAPI.Model.RoutePlan", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("id");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("created_at_utc");
+
+                    b.Property<string>("LocationIdsJson")
+                        .IsRequired()
+                        .HasColumnType("TEXT")
+                        .HasColumnName("location_ids_json");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("TEXT")
+                        .HasColumnName("name");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("user_id");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Routes");
                 });
 
             modelBuilder.Entity("Photo2GoAPI.Model.User", b =>

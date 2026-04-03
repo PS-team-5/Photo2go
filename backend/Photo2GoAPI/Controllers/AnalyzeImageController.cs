@@ -75,9 +75,16 @@ public class AnalyzeImageController : ControllerBase
             similarLocations,
             cancellationToken);
 
+        var routeGenerated = similarLocations.Count > 0;
+        var routeMessage = routeGenerated
+            ? "Marsrutas sekmingai sugeneruotas."
+            : "Marsrutas nesugeneruotas: nerasta panasiu vietu duomenu bazeje.";
+
         var response = new AnalyzeImageResultResponse
         {
             Message = "Nuotrauka sekmingai priimta analizei.",
+            RouteGenerated = routeGenerated,
+            RouteMessage = routeMessage,
             File = validationResult.Data!,
             Analysis = analysisResult,
             SimilarLocations = similarLocations
