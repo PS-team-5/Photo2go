@@ -108,7 +108,7 @@ function UploadForm({
                             className="image-remove-button"
                             aria-label="Remove selected image"
                         >
-                            x
+                            ×
                         </button>
                     </div>
                 ) : null}
