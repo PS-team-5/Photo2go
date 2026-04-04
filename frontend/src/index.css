@@ -109,3 +109,43 @@ code {
   padding: 4px 8px;
   background: var(--code-bg);
 }
+.image-preview {
+    position: relative;
+    display: inline-block;
+}
+
+.image-preview img {
+    display: block;
+    max-width: 100%;
+    border-radius: 8px;
+}
+
+.image-preview .image-remove-button {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+
+    width: auto !important;
+    height: auto !important;
+    padding: 0 !important;
+
+    border: none !important;
+    background: transparent !important;
+
+    color: #888;
+
+    font-size: 20px;
+    font-weight: bold;
+
+    cursor: pointer;
+
+    display: block !important;
+
+    line-height: 1;
+    
+    max-width: none !important;
+}
+
+.image-preview .image-remove-button:hover {
+    color: black;
+}
