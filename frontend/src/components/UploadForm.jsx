@@ -47,10 +47,15 @@ function UploadForm({
     const analysis = analysisResult?.analysis;
     const file = analysisResult?.file;
     const similarLocations = analysisResult?.similarLocations ?? [];
+    const [selectedCategory, setSelectedCategory] = useState("");
+    const filteredLocations = similarLocations.filter(
+        (loc) => !selectedCategory || loc.objectType === selectedCategory
+    );
     const primarySimilarLocation = similarLocations[0] ?? null;
     const [previewUrl, setPreviewUrl] = useState(null);
     const [expandedRouteId, setExpandedRouteId] = useState(null);
     const fileInputRef = useRef(null);
+    
 
     useEffect(() => {
         if (!selectedFile) {
@@ -116,6 +121,25 @@ function UploadForm({
                     {loading ? "Analyzing..." : "Analyze image"}
                 </button>
             </form>
+            <div style={{ marginTop: "20px" }}>
+                <h3>Filter locations</h3>
+
+                <select
+                    value={selectedCategory}
+                    onChange={(e) => setSelectedCategory(e.target.value)}
+                >
+                    <option value="">All</option>
+                    <option value="Church">Church</option>
+                    <option value="Castle">Castle</option>
+                    <option value="Park">Park</option>
+                </select>
+
+                {selectedCategory && filteredLocations.length === 0 && (
+                    <p style={{ marginTop: "10px" }}>
+                        No locations found for selected category
+                    </p>
+                )}
+            </div>
 
             {analysis && file ? (
                 <section className="result-card">
@@ -207,7 +231,7 @@ function UploadForm({
                             </div>
                         </article>
 
-                        {similarLocations.map((location, index) => (
+                        {filteredLocations.map((location, index) => (
                             <article key={location.id} className="route-stop">
                                 <div className="route-marker">{index + 1}</div>
                                 <div className="route-content">
