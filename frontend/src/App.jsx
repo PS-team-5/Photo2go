@@ -9,6 +9,7 @@ import UploadForm from "./components/UploadForm";
 const USER_API_BASE_URL = "http://localhost:5218/api/user";
 const ANALYZE_IMAGE_URL = "http://localhost:5218/analyze-image";
 const AUTH_STORAGE_KEY = "photo2go-user";
+const VILNIUS_CITY_NAME = "vilnius";
 
 async function readResponsePayload(response) {
     const contentType = response.headers.get("content-type") || "";
@@ -19,6 +20,40 @@ async function readResponsePayload(response) {
 
     const text = await response.text().catch(() => "");
     return text ? { message: text } : null;
+}
+
+function normalizeText(value) {
+    return String(value || "")
+        .trim()
+        .toLocaleLowerCase("lt-LT");
+}
+
+function getRouteBlockingError(data) {
+    const analysis = data?.analysis;
+    const routeGenerated = data?.routeGenerated;
+    const city = normalizeText(analysis?.city);
+
+    if (!analysis?.name || !analysis?.objectType) {
+        return "The route is generated only for objects in Vilnius. The object is not recognized.";
+    }
+
+    if (!city) {
+        return "The route is generated only for objects in Vilnius. The object is not recognized.";
+    }
+
+    if (city !== VILNIUS_CITY_NAME) {
+        return `The route is generated only for objects in Vilnius. The object is not recognized.`;
+    }
+
+    if (routeGenerated === false) {
+        return (
+            data?.routeMessage ||
+            data?.message ||
+            "Nepavyko sugeneruoti marsruto siam objektui."
+        );
+    }
+
+    return "";
 }
 
 function App() {
@@ -286,12 +321,22 @@ function App() {
                 return;
             }
 
+            const routeBlockingError = getRouteBlockingError(data);
+
+            if (routeBlockingError) {
+                setAnalysisResult({
+                    ...data,
+                    routeGenerated: false,
+                    similarLocations: [],
+                });
+                setMessage(routeBlockingError, "error");
+                return;
+            }
+
             setAnalysisResult(data);
-            const routeMessage = data?.routeMessage || data?.message || "Image analyzed successfully.";
-            const routeGenerated = data?.routeGenerated;
             setMessage(
-                routeMessage,
-                routeGenerated === false ? "error" : "success",
+                data?.routeMessage || data?.message || "Image analyzed successfully.",
+                "success",
             );
             await refreshRouteHistory(loggedInUser.id);
         } catch {
