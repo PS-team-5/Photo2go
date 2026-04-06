@@ -3,7 +3,7 @@ function formatPercent(value) {
 }
 
 function RouteTimeline({
-    as: Component = "section",
+    as = "section",
     className = "result-card route-card",
     title,
     subtitle,
@@ -11,12 +11,14 @@ function RouteTimeline({
     similarLocations = [],
     headerAside = null,
 }) {
+    const Tag = as;
+
     if (!analysis || similarLocations.length === 0) {
         return null;
     }
 
     return (
-        <Component className={className}>
+        <Tag className={className}>
             <div className="route-header">
                 <div>
                     <h2>{title}</h2>
@@ -75,7 +77,7 @@ function RouteTimeline({
                     </article>
                 ))}
             </div>
-        </Component>
+        </Tag>
     );
 }
 

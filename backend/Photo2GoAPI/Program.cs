@@ -40,6 +40,7 @@ builder.Services.AddScoped<GeneratedRouteService>();
 builder.Services.AddScoped<ImageUploadService>();
 builder.Services.AddScoped<ImageAnalysisService>();
 builder.Services.AddScoped<SimilarPlaceAlgorithService>();
+builder.Services.AddScoped<RecommendationFeedbackStore>();
 // Register the concrete AI provider behind an interface so it can be swapped later.
 builder.Services.AddHttpClient<IImageAnalysisClient, OpenAiImageAnalysisClient>((serviceProvider, client) =>
 {

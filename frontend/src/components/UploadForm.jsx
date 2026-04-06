@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import RouteTimeline from "./RouteTimeline";
 
 function formatPercent(value) {
@@ -6,11 +6,11 @@ function formatPercent(value) {
 }
 
 function formatOpenStatus(isOpen) {
-    return isOpen ? "Atidaryta" : "Siuo metu uzdaryta";
+    return isOpen ? "Open" : "Currently closed";
 }
 
 function formatUnescoStatus(isUnescoProtected) {
-    return isUnescoProtected ? "Taip" : "Ne";
+    return isUnescoProtected ? "Yes" : "No";
 }
 
 function formatRouteDate(value) {
@@ -34,12 +34,27 @@ function getRouteStopCount(route) {
     return (route?.similarLocations?.length ?? 0) + 1;
 }
 
+function getFeedbackLabel(value) {
+    if (value === "Patiko") {
+        return "Liked";
+    }
+
+    if (value === "Nepatiko") {
+        return "Disliked";
+    }
+
+    return "";
+}
+
 function UploadForm({
     selectedFile,
     handleFileChange,
     handleAnalyzeImage,
     loading,
     analysisResult,
+    selectedFeedback,
+    feedbackLoading,
+    onFeedbackSelect,
     routeHistory,
     routesLoading,
     routesError,
@@ -47,42 +62,42 @@ function UploadForm({
     const analysis = analysisResult?.analysis;
     const file = analysisResult?.file;
     const similarLocations = analysisResult?.similarLocations ?? [];
+    const detectedCategory = analysisResult?.detectedCategory;
+    const detectedLocationId = analysisResult?.detectedLocationId;
     const [selectedCategory, setSelectedCategory] = useState("");
-
-    const filteredLocations = similarLocations.filter(
-        (loc) => !selectedCategory || loc.objectType === selectedCategory
+    const [expandedRouteId, setExpandedRouteId] = useState(null);
+    const fileInputRef = useRef(null);
+    const previewUrl = useMemo(
+        () => (selectedFile ? URL.createObjectURL(selectedFile) : null),
+        [selectedFile],
     );
 
+    const filteredLocations = similarLocations.filter(
+        (loc) => !selectedCategory || loc.objectType === selectedCategory,
+    );
+    const activeExpandedRouteId = routeHistory.some((route) => route.id === expandedRouteId)
+        ? expandedRouteId
+        : null;
     const canShowRoute =
         analysisResult?.routeGenerated !== false &&
         analysis &&
         similarLocations.length > 0;
+    const canShowFeedbackButtons =
+        Boolean(analysis && detectedLocationId) &&
+        !selectedFeedback &&
+        typeof onFeedbackSelect === "function";
+    const feedbackSummary = getFeedbackLabel(selectedFeedback);
     const primarySimilarLocation = similarLocations[0] ?? null;
-    const [previewUrl, setPreviewUrl] = useState(null);
-    const [expandedRouteId, setExpandedRouteId] = useState(null);
-    const fileInputRef = useRef(null);  
 
     useEffect(() => {
-        if (!selectedFile) {
-            setPreviewUrl(null);
+        if (!previewUrl) {
             return;
         }
 
-        const objectUrl = URL.createObjectURL(selectedFile);
-        setPreviewUrl(objectUrl);
-
-        return () => URL.revokeObjectURL(objectUrl);
-    }, [selectedFile]);
-
-    useEffect(() => {
-        if (!routeHistory.some((route) => route.id === expandedRouteId)) {
-            setExpandedRouteId(null);
-        }
-    }, [routeHistory, expandedRouteId]);
+        return () => URL.revokeObjectURL(previewUrl);
+    }, [previewUrl]);
 
     const handleRemoveImage = () => {
-        setPreviewUrl(null);
-
         if (fileInputRef.current) {
             fileInputRef.current.value = "";
         }
@@ -126,6 +141,7 @@ function UploadForm({
                     {loading ? "Analyzing..." : "Analyze image"}
                 </button>
             </form>
+
             <div style={{ marginTop: "20px" }}>
                 <h3>Filter locations</h3>
 
@@ -139,11 +155,11 @@ function UploadForm({
                     <option value="Park">Park</option>
                 </select>
 
-                {selectedCategory && filteredLocations.length === 0 && (
+                {selectedCategory && filteredLocations.length === 0 ? (
                     <p style={{ marginTop: "10px" }}>
                         No locations found for selected category
                     </p>
-                )}
+                ) : null}
             </div>
 
             {analysis && file ? (
@@ -182,6 +198,12 @@ function UploadForm({
                             <span>Confidence</span>
                             <strong>{formatPercent(analysis.confidence)}</strong>
                         </div>
+                        {detectedCategory ? (
+                            <div className="result-item">
+                                <span>Detected category</span>
+                                <strong>{detectedCategory}</strong>
+                            </div>
+                        ) : null}
                         {primarySimilarLocation ? (
                             <div className="result-item result-item-status">
                                 <span>Status</span>
@@ -202,6 +224,45 @@ function UploadForm({
                             </div>
                         ) : null}
                     </div>
+
+                    {canShowFeedbackButtons ? (
+                        <div className="feedback-panel">
+                            <div className="feedback-copy">
+                                <h3>Did we find what you were looking for?</h3>
+                                <p>
+                                    Click <strong>Like</strong> or <strong>Dislike</strong>.
+                                    This is optional feedback about the accuracy of the AI recognition.
+                                </p>
+                            </div>
+                            <div className="feedback-actions">
+                                <button
+                                    type="button"
+                                    className="feedback-button"
+                                    onClick={() => onFeedbackSelect("Patiko")}
+                                    disabled={feedbackLoading}
+                                >
+                                    Like
+                                </button>
+                                <button
+                                    type="button"
+                                    className="feedback-button feedback-button-alt"
+                                    onClick={() => onFeedbackSelect("Nepatiko")}
+                                    disabled={feedbackLoading}
+                                >
+                                    Dislike
+                                </button>
+                            </div>
+                        </div>
+                    ) : null}
+
+                    {feedbackSummary ? (
+                        <div className="feedback-summary">
+                            <span className="feedback-summary-badge">{feedbackSummary}</span>
+                            <p>
+                               Thank you for your feedback.
+                            </p>
+                        </div>
+                    ) : null}
                 </section>
             ) : null}
 
@@ -212,7 +273,7 @@ function UploadForm({
                             <h2>Similar places route</h2>
                             <p className="route-subtitle">
                                 Start from the detected place and continue through the most
-                                similar locations from the database.
+                                suitable Vilnius locations from the database.
                             </p>
                         </div>
                     </div>
@@ -310,7 +371,7 @@ function UploadForm({
                 {!routesLoading && routeHistory.length > 0 ? (
                     <div className="route-history-list">
                         {routeHistory.map((route) => {
-                            const isExpanded = expandedRouteId === route.id;
+                            const isExpanded = activeExpandedRouteId === route.id;
 
                             return (
                                 <article key={route.id} className="route-history-item">

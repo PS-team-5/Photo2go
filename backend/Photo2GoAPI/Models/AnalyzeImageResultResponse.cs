@@ -10,5 +10,7 @@ public class AnalyzeImageResultResponse
 
     public required AnalyzeImageResponse File { get; init; }
     public required ImageAnalysisResult Analysis { get; init; }
+    public int? DetectedLocationId { get; init; }
+    public string? DetectedCategory { get; init; }
     public required IReadOnlyList<SimilarLocationResult> SimilarLocations { get; init; }
 }
