@@ -8,6 +8,7 @@ import UploadForm from "./components/UploadForm";
 
 const USER_API_BASE_URL = "http://localhost:5218/api/user";
 const ANALYZE_IMAGE_URL = "http://localhost:5218/analyze-image";
+const ANALYZE_IMAGE_FEEDBACK_URL = "http://localhost:5218/analyze-image/feedback";
 const AUTH_STORAGE_KEY = "photo2go-user";
 const VILNIUS_CITY_NAME = "vilnius";
 
@@ -46,11 +47,7 @@ function getRouteBlockingError(data) {
     }
 
     if (routeGenerated === false) {
-        return (
-            data?.routeMessage ||
-            data?.message ||
-            "Nepavyko sugeneruoti marsruto siam objektui."
-        );
+        return "Could not generate a route for this object because no similar places were found in the database.";
     }
 
     return "";
@@ -63,6 +60,8 @@ function App() {
     const [loggedInUser, setLoggedInUser] = useState(null);
     const [selectedFile, setSelectedFile] = useState(null);
     const [analysisResult, setAnalysisResult] = useState(null);
+    const [selectedFeedback, setSelectedFeedback] = useState("");
+    const [feedbackLoading, setFeedbackLoading] = useState(false);
     const [routeHistory, setRouteHistory] = useState([]);
     const [routesLoading, setRoutesLoading] = useState(false);
     const [routesError, setRoutesError] = useState("");
@@ -212,6 +211,7 @@ function App() {
         const file = e.target.files?.[0] ?? null;
         setSelectedFile(file);
         setAnalysisResult(null);
+        setSelectedFeedback("");
         setMessage("");
     };
 
@@ -300,6 +300,7 @@ function App() {
         setLoading(true);
         setMessage("");
         setAnalysisResult(null);
+        setSelectedFeedback("");
 
         try {
             const formData = new FormData();
@@ -315,7 +316,7 @@ function App() {
 
             if (!response.ok) {
                 setMessage(
-                    data?.message || `Image analysis failed (HTTP ${response.status})`,
+                    `Image analysis failed (HTTP ${response.status}).`,
                     "error",
                 );
                 return;
@@ -335,7 +336,7 @@ function App() {
 
             setAnalysisResult(data);
             setMessage(
-                data?.routeMessage || data?.message || "Image analyzed successfully.",
+                "Image analyzed successfully.",
                 "success",
             );
             await refreshRouteHistory(loggedInUser.id);
@@ -346,10 +347,76 @@ function App() {
         }
     };
 
+    const handleRecommendationFeedback = async (feedback) => {
+        const detectedLocationId = analysisResult?.detectedLocationId;
+
+        if (!detectedLocationId) {
+            setMessage("The detected location could not be found for saving feedback.", "error");
+            return;
+        }
+
+        setFeedbackLoading(true);
+        setSelectedFeedback(feedback);
+        setMessage("");
+
+        try {
+            const response = await fetch(ANALYZE_IMAGE_FEEDBACK_URL, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    detectedLocationId,
+                    feedback,
+                    userId: loggedInUser?.id ?? null,
+                    currentConfidence: analysisResult?.analysis?.confidence ?? null,
+                }),
+            });
+
+            const data = await readResponsePayload(response);
+
+            if (!response.ok) {
+                setSelectedFeedback("");
+                setMessage(
+                    data?.message || "Could not save your feedback.",
+                    "error",
+                );
+                return;
+            }
+
+            setAnalysisResult((current) =>
+                current
+                    ? {
+                          ...current,
+                          analysis: current.analysis
+                              ? {
+                                    ...current.analysis,
+                                    confidence:
+                                        typeof data?.adjustedConfidence === "number"
+                                            ? data.adjustedConfidence
+                                            : Number(current.analysis.confidence || 0),
+                                }
+                              : current.analysis,
+                      }
+                    : current,
+            );
+            setMessage(
+                "Feedback saved. The AI confidence display has been updated.",
+                "success",
+            );
+        } catch {
+            setSelectedFeedback("");
+            setMessage("Could not connect to the feedback service.", "error");
+        } finally {
+            setFeedbackLoading(false);
+        }
+    };
+
     const handleLogout = () => {
         setLoggedInUser(null);
         setSelectedFile(null);
         setAnalysisResult(null);
+        setSelectedFeedback("");
         setRouteHistory([]);
         setRoutesError("");
         setRoutesLoading(false);
@@ -393,6 +460,9 @@ function App() {
                         handleAnalyzeImage={handleAnalyzeImage}
                         loading={loading}
                         analysisResult={analysisResult}
+                        selectedFeedback={selectedFeedback}
+                        feedbackLoading={feedbackLoading}
+                        onFeedbackSelect={handleRecommendationFeedback}
                         routeHistory={routeHistory}
                         routesLoading={routesLoading}
                         routesError={routesError}

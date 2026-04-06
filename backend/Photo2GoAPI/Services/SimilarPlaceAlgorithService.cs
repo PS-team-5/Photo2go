@@ -8,6 +8,7 @@ namespace Photo2GoAPI.Services;
 
 public class SimilarPlaceAlgorithService
 {
+    private const string SupportedCity = "Vilnius";
     private readonly AppDbContext _db;
 
     public SimilarPlaceAlgorithService(AppDbContext db)
@@ -25,14 +26,18 @@ public class SimilarPlaceAlgorithService
             return Array.Empty<SimilarLocationResult>();
         }
 
-        var locations = await _db.Locations
-            .AsNoTracking()
-            .ToListAsync(cancellationToken);
+        var locations = await GetVilniusLocationsAsync(cancellationToken);
+        var detectedLocation = ResolveDetectedLocation(analysis, locations);
 
         var matches = new List<(Location Location, decimal Score)>(locations.Count);
 
         foreach (var location in locations)
         {
+            if (detectedLocation is not null && location.Id == detectedLocation.Id)
+            {
+                continue;
+            }
+
             var (score, isSamePlace) = CalculateSimilarity(analysis, location);
             if (isSamePlace)
             {
@@ -60,6 +65,139 @@ public class SimilarPlaceAlgorithService
                 IsOpen = IsLocationOpen(match.Location)
             })
             .ToList();
+    }
+
+    public async Task<Location?> FindDetectedLocationAsync(
+        ImageAnalysisResult analysis,
+        CancellationToken cancellationToken = default)
+    {
+        var locations = await GetVilniusLocationsAsync(cancellationToken);
+        return ResolveDetectedLocation(analysis, locations);
+    }
+
+    public async Task<Location?> FindVilniusLocationByIdAsync(
+        int locationId,
+        CancellationToken cancellationToken = default)
+    {
+        return await _db.Locations
+            .AsNoTracking()
+            .Where(location => location.Id == locationId)
+            .Where(location => location.City == SupportedCity)
+            .FirstOrDefaultAsync(cancellationToken);
+    }
+
+    public async Task<IReadOnlyList<SimilarLocationResult>> FindRecommendationsByFeedbackAsync(
+        Location detectedLocation,
+        string feedback,
+        int take = 3,
+        CancellationToken cancellationToken = default)
+    {
+        if (take <= 0)
+        {
+            return Array.Empty<SimilarLocationResult>();
+        }
+
+        var locations = await GetVilniusLocationsAsync(cancellationToken);
+        var normalizedFeedback = NormalizeFeedback(feedback);
+        var matches = new List<(Location Location, decimal Score)>(locations.Count);
+
+        foreach (var location in locations)
+        {
+            if (location.Id == detectedLocation.Id)
+            {
+                continue;
+            }
+
+            var hasSameCategory = string.Equals(
+                location.Category,
+                detectedLocation.Category,
+                StringComparison.OrdinalIgnoreCase);
+
+            if (normalizedFeedback == "patiko" && !hasSameCategory)
+            {
+                continue;
+            }
+
+            if (normalizedFeedback == "nepatiko" && hasSameCategory)
+            {
+                continue;
+            }
+
+            var (score, _) = CalculateSimilarity(
+                new ImageAnalysisResult
+                {
+                    Name = detectedLocation.Name,
+                    ObjectType = detectedLocation.ObjectType,
+                    ArchitectureStyle = detectedLocation.ArchitectureStyle,
+                    Period = detectedLocation.Period,
+                    City = detectedLocation.City,
+                    Confidence = 1m
+                },
+                location);
+
+            matches.Add((location, score));
+        }
+
+        return matches
+            .OrderByDescending(match => match.Score)
+            .ThenBy(match => match.Location.Name, StringComparer.OrdinalIgnoreCase)
+            .Take(take)
+            .Select(match => new SimilarLocationResult
+            {
+                Id = match.Location.Id,
+                Name = match.Location.Name,
+                ObjectType = match.Location.ObjectType,
+                Category = match.Location.Category,
+                IsUnescoProtected = IsUnescoProtected(match.Location),
+                ArchitectureStyle = match.Location.ArchitectureStyle,
+                Period = match.Location.Period,
+                City = match.Location.City,
+                Similarity = match.Score,
+                IsOpen = IsLocationOpen(match.Location)
+            })
+            .ToList();
+    }
+
+    public static bool IsSupportedFeedback(string feedback)
+    {
+        var normalizedFeedback = NormalizeFeedback(feedback);
+        return normalizedFeedback is "patiko" or "nepatiko";
+    }
+
+    private async Task<List<Location>> GetVilniusLocationsAsync(CancellationToken cancellationToken)
+    {
+        return await _db.Locations
+            .AsNoTracking()
+            .Where(location => location.City == SupportedCity)
+            .ToListAsync(cancellationToken);
+    }
+
+    private static Location? ResolveDetectedLocation(
+        ImageAnalysisResult analysis,
+        IReadOnlyList<Location> locations)
+    {
+        if (locations.Count == 0)
+        {
+            return null;
+        }
+
+        return locations
+            .Select(location =>
+            {
+                var (score, _) = CalculateSimilarity(analysis, location);
+                return new { Location = location, Score = score };
+            })
+            .OrderByDescending(match => match.Score)
+            .ThenBy(match => match.Location.Name, StringComparer.OrdinalIgnoreCase)
+            .Select(match => match.Location)
+            .FirstOrDefault();
+    }
+
+    private static string NormalizeFeedback(string feedback)
+    {
+        return string.IsNullOrWhiteSpace(feedback)
+            ? string.Empty
+            : feedback.Trim().ToLowerInvariant();
     }
 
     private static bool IsLocationOpen(Location location)

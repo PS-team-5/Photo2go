@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Photo2GoAPI.Model;
+using Photo2GoAPI.Models;
 
 namespace Photo2GoAPI.Data;
 
@@ -13,6 +14,7 @@ public class AppDbContext : DbContext
     public DbSet<Location> Locations { get; set; } = null!;
     public DbSet<RoutePlan> Routes { get; set; } = null!;
     public DbSet<GeneratedRoute> GeneratedRoutes { get; set; } = null!;
+    public DbSet<StoredRecommendationFeedback> RecommendationFeedback { get; set; } = null!;
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -22,6 +24,18 @@ public class AppDbContext : DbContext
             .HasOne(route => route.User)
             .WithMany(user => user.GeneratedRoutes)
             .HasForeignKey(route => route.UserId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<StoredRecommendationFeedback>()
+            .HasOne(feedback => feedback.User)
+            .WithMany()
+            .HasForeignKey(feedback => feedback.UserId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        modelBuilder.Entity<StoredRecommendationFeedback>()
+            .HasOne(feedback => feedback.DetectedLocation)
+            .WithMany()
+            .HasForeignKey(feedback => feedback.DetectedLocationId)
             .OnDelete(DeleteBehavior.Cascade);
 
         modelBuilder.Entity<Location>().HasData(

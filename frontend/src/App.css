@@ -257,6 +257,93 @@
     line-height: 1.4;
 }
 
+.feedback-panel {
+    margin-top: 18px;
+    padding: 18px;
+    border-radius: 14px;
+    background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+    border: 1px solid #dbeafe;
+    display: grid;
+    gap: 14px;
+}
+
+.feedback-copy h3 {
+    margin: 0 0 6px;
+    color: #0f172a;
+    font-size: 18px;
+}
+
+.feedback-copy p {
+    margin: 0;
+    color: #475569;
+    line-height: 1.6;
+}
+
+.feedback-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.feedback-button {
+    min-width: 140px;
+    padding: 12px 16px;
+    border-radius: 12px;
+    border: 1px solid #bfdbfe;
+    background: #eff6ff;
+    color: #1d4ed8;
+    font-size: 15px;
+    font-weight: 800;
+    cursor: pointer;
+    transition:
+        background 0.2s ease,
+        color 0.2s ease,
+        border-color 0.2s ease,
+        transform 0.2s ease,
+        box-shadow 0.2s ease;
+}
+
+.feedback-button:hover:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow: 0 10px 18px rgba(37, 99, 235, 0.14);
+}
+
+.feedback-button:disabled {
+    opacity: 0.65;
+    cursor: not-allowed;
+}
+
+.feedback-button-alt {
+    background: #fff7ed;
+    border-color: #fdba74;
+    color: #c2410c;
+}
+
+.feedback-summary {
+    margin-top: 18px;
+    padding: 14px 16px;
+    border-radius: 14px;
+    background: #eff6ff;
+    border: 1px solid #bfdbfe;
+}
+
+.feedback-summary p {
+    margin: 10px 0 0;
+    color: #1e3a8a;
+    line-height: 1.5;
+}
+
+.feedback-summary-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 6px 10px;
+    border-radius: 999px;
+    background: #2563eb;
+    color: white;
+    font-size: 12px;
+    font-weight: 800;
+}
+
 .status-button {
     width: 100%;
     padding: 10px 12px;
@@ -653,6 +740,14 @@
 
     .result-grid {
         grid-template-columns: 1fr;
+    }
+
+    .feedback-actions {
+        flex-direction: column;
+    }
+
+    .feedback-button {
+        width: 100%;
     }
 
     .switch-buttons {

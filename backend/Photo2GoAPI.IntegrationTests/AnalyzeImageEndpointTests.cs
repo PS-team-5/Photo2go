@@ -1,4 +1,5 @@
 using System.Net;
+using System.Text.Json;
 using Xunit;
 
 namespace Photo2GoAPI.IntegrationTests;
@@ -44,6 +45,28 @@ public class AnalyzeImageEndpointTests : IClassFixture<CustomWebApplicationFacto
         Assert.Equal(expectedStatusCode, response.StatusCode);
        
         Assert.Contains(expectedMessageFragment, responseBody);
+    }
+
+    [Fact]
+    public async Task AnalyzeImage_ReturnsDetectedVilniusCategoryAndRecommendations()
+    {
+        using var content = CreateMultipartContent("landmark.jpg", "image/jpeg", new byte[] { 1, 2, 3, 4 });
+
+        var response = await _client.PostAsync("/analyze-image", content);
+        var responseBody = await response.Content.ReadAsStringAsync();
+
+        response.EnsureSuccessStatusCode();
+
+        using var document = JsonDocument.Parse(responseBody);
+        var root = document.RootElement;
+
+        Assert.Equal(2, root.GetProperty("detectedLocationId").GetInt32());
+        Assert.Equal("Religious Object", root.GetProperty("detectedCategory").GetString());
+
+        foreach (var location in root.GetProperty("similarLocations").EnumerateArray())
+        {
+            Assert.Equal("Vilnius", location.GetProperty("city").GetString());
+        }
     }
 
   

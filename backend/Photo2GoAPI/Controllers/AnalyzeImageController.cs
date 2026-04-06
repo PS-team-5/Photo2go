@@ -14,6 +14,7 @@ public class AnalyzeImageController : ControllerBase
     private readonly ImageUploadService _imageUploadService;
     private readonly SimilarPlaceAlgorithService _similarPlaceAlgorithService;
     private readonly GeneratedRouteService _generatedRouteService;
+    private readonly RecommendationFeedbackStore _recommendationFeedbackStore;
     private readonly ImageUploadOptions _options;
 
     public AnalyzeImageController(
@@ -21,12 +22,14 @@ public class AnalyzeImageController : ControllerBase
         ImageUploadService imageUploadService,
         SimilarPlaceAlgorithService similarPlaceAlgorithService,
         GeneratedRouteService generatedRouteService,
+        RecommendationFeedbackStore recommendationFeedbackStore,
         IOptions<ImageUploadOptions> options)
     {
         _imageAnalysisService = imageAnalysisService;
         _imageUploadService = imageUploadService;
         _similarPlaceAlgorithService = similarPlaceAlgorithService;
         _generatedRouteService = generatedRouteService;
+        _recommendationFeedbackStore = recommendationFeedbackStore;
         _options = options.Value;
     }
 
@@ -59,6 +62,27 @@ public class AnalyzeImageController : ControllerBase
         }
 
         var analysisResult = await _imageAnalysisService.AnalyzeAsync(request.Image!, cancellationToken);
+        var detectedLocation = await _similarPlaceAlgorithService.FindDetectedLocationAsync(
+            analysisResult,
+            cancellationToken);
+        if (detectedLocation is not null)
+        {
+            var adjustedConfidence = await _recommendationFeedbackStore.ApplyConfidenceAdjustmentAsync(
+                analysisResult.Confidence,
+                detectedLocation,
+                cancellationToken);
+
+            analysisResult = new ImageAnalysisResult
+            {
+                Name = analysisResult.Name,
+                ObjectType = analysisResult.ObjectType,
+                ArchitectureStyle = analysisResult.ArchitectureStyle,
+                Period = analysisResult.Period,
+                City = analysisResult.City,
+                Confidence = adjustedConfidence
+            };
+        }
+
         var similarLocations = await _similarPlaceAlgorithService.FindTopSimilarAsync(
             analysisResult,
             cancellationToken: cancellationToken);
@@ -85,6 +109,63 @@ public class AnalyzeImageController : ControllerBase
             RouteMessage = routeMessage,
             File = validationResult.Data!,
             Analysis = analysisResult,
+            DetectedLocationId = detectedLocation?.Id,
+            DetectedCategory = detectedLocation?.Category,
+            SimilarLocations = similarLocations
+        };
+
+        return Ok(response);
+    }
+
+    [HttpPost("analyze-image/feedback")]
+    public async Task<IActionResult> SubmitRecommendationFeedback(
+        [FromBody] RecommendationFeedbackRequest request,
+        CancellationToken cancellationToken)
+    {
+        if (!SimilarPlaceAlgorithService.IsSupportedFeedback(request.Feedback))
+        {
+            return BadRequest(new
+            {
+                message = "Neteisingas atsiliepimo tipas. Naudokite 'Patiko' arba 'Nepatiko'."
+            });
+        }
+
+        var detectedLocation = await _similarPlaceAlgorithService.FindVilniusLocationByIdAsync(
+            request.DetectedLocationId,
+            cancellationToken);
+
+        if (detectedLocation is null)
+        {
+            return NotFound(new
+            {
+                message = "Atpazinta vieta nerasta Vilniaus duomenu bazeje."
+            });
+        }
+
+        var normalizedFeedback = request.Feedback.Trim().ToLowerInvariant();
+        var similarLocations = await _similarPlaceAlgorithService.FindRecommendationsByFeedbackAsync(
+            detectedLocation,
+            normalizedFeedback,
+            cancellationToken: cancellationToken);
+
+        await _recommendationFeedbackStore.SaveAsync(
+            detectedLocation,
+            request,
+            cancellationToken);
+
+        decimal? adjustedConfidence = request.CurrentConfidence is decimal currentConfidence
+            ? await _recommendationFeedbackStore.ApplyConfidenceAdjustmentAsync(
+                currentConfidence,
+                detectedLocation,
+                cancellationToken)
+            : null;
+
+        var response = new RecommendationFeedbackResponse
+        {
+            DetectedLocationId = detectedLocation.Id,
+            DetectedCategory = detectedLocation.Category,
+            Feedback = normalizedFeedback,
+            AdjustedConfidence = adjustedConfidence,
             SimilarLocations = similarLocations
         };
 
