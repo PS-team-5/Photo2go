@@ -28,8 +28,13 @@ builder.Services.Configure<FormOptions>(options =>
 
     options.MultipartBodyLengthLimit = imageUploadOptions.MaxFileSizeInBytes;
 });
+var sqliteConnectionString = SqliteDatabaseSetup.ResolveConnectionString(
+    builder.Configuration,
+    builder.Environment.ContentRootPath);
+SqliteDatabaseSetup.EnsureLegacyLocationsBaseline(sqliteConnectionString);
+
 builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection")));
+    options.UseSqlite(sqliteConnectionString));
 builder.Services.AddScoped<UserService>();
 builder.Services.AddScoped<GeneratedRouteService>();
 builder.Services.AddScoped<ImageUploadService>();
@@ -54,6 +59,20 @@ builder.Services.AddCors(options =>
 });
 
 var app = builder.Build();
+
+using (var scope = app.Services.CreateScope())
+{
+    var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+    if (dbContext.Database.IsRelational())
+    {
+        dbContext.Database.Migrate();
+    }
+    else
+    {
+        dbContext.Database.EnsureCreated();
+    }
+}
 
 // Convert infrastructure and provider exceptions into stable API responses.
 app.UseExceptionHandler(errorApp =>

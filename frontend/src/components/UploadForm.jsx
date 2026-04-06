@@ -48,14 +48,19 @@ function UploadForm({
     const file = analysisResult?.file;
     const similarLocations = analysisResult?.similarLocations ?? [];
     const [selectedCategory, setSelectedCategory] = useState("");
+
     const filteredLocations = similarLocations.filter(
         (loc) => !selectedCategory || loc.objectType === selectedCategory
     );
+
+    const canShowRoute =
+        analysisResult?.routeGenerated !== false &&
+        analysis &&
+        similarLocations.length > 0;
     const primarySimilarLocation = similarLocations[0] ?? null;
     const [previewUrl, setPreviewUrl] = useState(null);
     const [expandedRouteId, setExpandedRouteId] = useState(null);
-    const fileInputRef = useRef(null);
-    
+    const fileInputRef = useRef(null);  
 
     useEffect(() => {
         if (!selectedFile) {
@@ -200,7 +205,7 @@ function UploadForm({
                 </section>
             ) : null}
 
-            {analysis && similarLocations.length > 0 ? (
+            {canShowRoute ? (
                 <section className="result-card route-card">
                     <div className="route-header">
                         <div>
