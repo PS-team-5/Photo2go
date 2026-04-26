@@ -1,10 +1,14 @@
+import { useI18n } from "../i18n/useI18n";
+
 function LoginForm({ loginData, handleLoginChange, handleLogin, loading }) {
+    const { t } = useI18n();
+
     return (
         <form onSubmit={handleLogin} className="auth-form">
             <input
                 type="text"
                 name="username"
-                placeholder="Username"
+                placeholder={t("common.username")}
                 value={loginData.username}
                 onChange={handleLoginChange}
                 required
@@ -12,7 +16,7 @@ function LoginForm({ loginData, handleLoginChange, handleLogin, loading }) {
             <input
                 type="email"
                 name="email"
-                placeholder="Email"
+                placeholder={t("common.email")}
                 value={loginData.email}
                 onChange={handleLoginChange}
                 required
@@ -20,13 +24,13 @@ function LoginForm({ loginData, handleLoginChange, handleLogin, loading }) {
             <input
                 type="password"
                 name="password"
-                placeholder="Password"
+                placeholder={t("common.password")}
                 value={loginData.password}
                 onChange={handleLoginChange}
                 required
             />
             <button type="submit" disabled={loading}>
-                {loading ? "Logging in..." : "Login"}
+                {loading ? t("auth.loginLoading") : t("common.login")}
             </button>
         </form>
     );

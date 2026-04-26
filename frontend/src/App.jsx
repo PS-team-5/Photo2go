@@ -5,6 +5,8 @@ import LoginForm from "./components/LoginForm";
 import RegisterForm from "./components/RegisterForm";
 import MessageBox from "./components/MessageBox";
 import UploadForm from "./components/UploadForm";
+import { useI18n } from "./i18n/useI18n";
+import { LANGUAGE_OPTIONS } from "./i18n/translations";
 
 const USER_API_BASE_URL = "http://localhost:5218/api/user";
 const ANALYZE_IMAGE_URL = "http://localhost:5218/analyze-image";
@@ -53,31 +55,32 @@ function normalizeText(value) {
         .toLocaleLowerCase("lt-LT");
 }
 
-function getRouteBlockingError(data) {
+function getRouteBlockingError(data, t) {
     const analysis = data?.analysis;
     const routeGenerated = data?.routeGenerated;
     const city = normalizeText(analysis?.city);
 
     if (!analysis?.name || !analysis?.objectType) {
-        return "The route is generated only for objects in Vilnius. The object is not recognized.";
+        return t("messages.routeOnlyForVilnius");
     }
 
     if (!city) {
-        return "The route is generated only for objects in Vilnius. The object is not recognized.";
+        return t("messages.routeOnlyForVilnius");
     }
 
     if (city !== VILNIUS_CITY_NAME) {
-        return `The route is generated only for objects in Vilnius. The object is not recognized.`;
+        return t("messages.routeOnlyForVilnius");
     }
 
     if (routeGenerated === false) {
-        return "Could not generate a route for this object because no similar places were found in the database.";
+        return t("messages.routeNotFound");
     }
 
     return "";
 }
 
 function App() {
+    const { language, setLanguage, t } = useI18n();
     const [mode, setMode] = useState("login");
     const [messageState, setMessageState] = useState({ text: "", type: "info" });
     const [loading, setLoading] = useState(false);
@@ -196,7 +199,7 @@ function App() {
 
                 if (!response.ok) {
                     setRouteHistory([]);
-                    setRoutesError(data?.message || "Could not load your saved routes.");
+                    setRoutesError(data?.message || t("messages.loadRoutesFailed"));
                     return;
                 }
 
@@ -204,7 +207,7 @@ function App() {
             } catch {
                 if (!isCancelled) {
                     setRouteHistory([]);
-                    setRoutesError("Could not connect to backend to load your routes.");
+                    setRoutesError(t("messages.loadRoutesUnavailable"));
                 }
             } finally {
                 if (!isCancelled) {
@@ -218,7 +221,7 @@ function App() {
         return () => {
             isCancelled = true;
         };
-    }, [loggedInUser?.id]);
+    }, [loggedInUser?.id, t]);
 
     const refreshRouteHistory = async (userId) => {
         if (!userId) {
@@ -236,14 +239,14 @@ function App() {
 
             if (!response.ok) {
                 setRouteHistory([]);
-                setRoutesError(data?.message || "Could not load your saved routes.");
+                setRoutesError(data?.message || t("messages.loadRoutesFailed"));
                 return;
             }
 
             setRouteHistory(Array.isArray(data) ? data : []);
         } catch {
             setRouteHistory([]);
-            setRoutesError("Could not connect to backend to load your routes.");
+            setRoutesError(t("messages.loadRoutesUnavailable"));
         } finally {
             setRoutesLoading(false);
         }
@@ -290,7 +293,7 @@ function App() {
             const responseText = await response.text();
 
             if (!response.ok) {
-                setMessage(responseText || "Login failed", "error");
+                setMessage(responseText || t("messages.loginFailed"), "error");
                 return;
             }
 
@@ -305,9 +308,9 @@ function App() {
             localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(safeUser));
             setAnalysisResult(null);
             setSelectedFile(null);
-            setMessage("Login successful. You can upload a photo now.", "success");
+            setMessage(t("messages.loginSuccess"), "success");
         } catch {
-            setMessage("Could not connect to backend", "error");
+            setMessage(t("messages.backendUnavailable"), "error");
         } finally {
             setLoading(false);
         }
@@ -331,17 +334,17 @@ function App() {
 
             if (response.ok) {
                 setMode("login");
-                setMessage("Registration successful. Please log in.", "success");
+                setMessage(t("messages.registerSuccess"), "success");
                 setRegisterData({
                     username: "",
                     email: "",
                     password: "",
                 });
             } else {
-                setMessage(text || "Registration failed", "error");
+                setMessage(text || t("messages.registerFailed"), "error");
             }
         } catch {
-            setMessage("Could not connect to backend", "error");
+            setMessage(t("messages.backendUnavailable"), "error");
         } finally {
             setLoading(false);
         }
@@ -351,7 +354,7 @@ function App() {
         e.preventDefault();
 
         if (!selectedFile) {
-            setMessage("Please choose an image first.", "error");
+            setMessage(t("messages.chooseImageFirst"), "error");
             return;
         }
 
@@ -373,14 +376,13 @@ function App() {
             const data = await readResponsePayload(response);
 
             if (!response.ok) {
-                setMessage(
-                    `Image analysis failed (HTTP ${response.status}).`,
-                    "error",
-                );
+                setMessage(t("messages.imageAnalysisFailedHttp", {
+                    status: response.status,
+                }), "error");
                 return;
             }
 
-            const routeBlockingError = getRouteBlockingError(data);
+            const routeBlockingError = getRouteBlockingError(data, t);
 
             if (routeBlockingError) {
                 setAnalysisResult({
@@ -393,13 +395,10 @@ function App() {
             }
 
             setAnalysisResult(data);
-            setMessage(
-                "Image analyzed successfully.",
-                "success",
-            );
+            setMessage(t("messages.imageAnalysisSuccess"), "success");
             await refreshRouteHistory(loggedInUser.id);
         } catch {
-            setMessage("Could not connect to image analysis service", "error");
+            setMessage(t("messages.imageAnalysisUnavailable"), "error");
         } finally {
             setLoading(false);
         }
@@ -409,7 +408,7 @@ function App() {
         const detectedLocationId = analysisResult?.detectedLocationId;
 
         if (!detectedLocationId) {
-            setMessage("The detected location could not be found for saving feedback.", "error");
+            setMessage(t("messages.feedbackLocationMissing"), "error");
             return;
         }
 
@@ -436,7 +435,7 @@ function App() {
             if (!response.ok) {
                 setSelectedFeedback("");
                 setMessage(
-                    data?.message || "Could not save your feedback.",
+                    data?.message || t("messages.feedbackSaveFailed"),
                     "error",
                 );
                 return;
@@ -458,13 +457,10 @@ function App() {
                       }
                     : current,
             );
-            setMessage(
-                "Feedback saved. The AI confidence display has been updated.",
-                "success",
-            );
+            setMessage(t("messages.feedbackSaved"), "success");
         } catch {
             setSelectedFeedback("");
-            setMessage("Could not connect to the feedback service.", "error");
+            setMessage(t("messages.feedbackUnavailable"), "error");
         } finally {
             setFeedbackLoading(false);
         }
@@ -478,7 +474,7 @@ function App() {
         setRouteHistory([]);
         setRoutesError("");
         setRoutesLoading(false);
-        setMessage("You have been logged out.", "info");
+        setMessage(t("messages.logoutSuccess"), "info");
         localStorage.removeItem(AUTH_STORAGE_KEY);
         setLoginData({
             username: "",
@@ -496,19 +492,41 @@ function App() {
         setHasSavedTheme(true);
     };
 
+    const nextThemeLabel = theme === "dark"
+        ? t("common.light")
+        : t("common.dark");
+
     const themeToggle = (
         <button
             type="button"
             className="secondary-button theme-toggle"
             onClick={handleThemeToggle}
-            aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}
-            title={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}
+            aria-label={t("common.switchTheme", { theme: nextThemeLabel })}
+            title={t("common.switchTheme", { theme: nextThemeLabel })}
         >
-            <span className="theme-toggle-label">Theme</span>
+            <span className="theme-toggle-label">{t("common.theme")}</span>
             <span className="theme-toggle-value">
-                {theme === "dark" ? "Dark" : "Light"}
+                {theme === "dark" ? t("common.dark") : t("common.light")}
             </span>
         </button>
+    );
+
+    const languageSelect = (
+        <label className="preference-field">
+            <span className="preference-label">{t("common.language")}</span>
+            <select
+                className="filter-select preference-select"
+                value={language}
+                onChange={(event) => setLanguage(event.target.value)}
+                aria-label={t("common.language")}
+            >
+                {LANGUAGE_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>
+                        {option.label}
+                    </option>
+                ))}
+            </select>
+        </label>
     );
 
     if (loggedInUser) {
@@ -522,19 +540,21 @@ function App() {
                 <div className="auth-card app-card">
                     <div className="user-bar">
                         <div>
-                            <h1 className="auth-title">Photo2Go</h1>
+                            <h1 className="auth-title">{t("common.brand")}</h1>
                             <p className="subtitle">
-                                Logged in as <strong>{loggedInUser.username}</strong>
+                                {t("common.loggedInAsLabel")}{" "}
+                                <strong>{loggedInUser.username}</strong>
                             </p>
                         </div>
                         <div className="header-actions">
+                            {languageSelect}
                             {themeToggle}
                             <button
                                 type="button"
                                 className="secondary-button"
                                 onClick={handleLogout}
                             >
-                                Logout
+                                {t("common.logout")}
                             </button>
                         </div>
                     </div>
@@ -565,9 +585,14 @@ function App() {
                 onClose={() => setMessage("")}
             />
             <div className="auth-card">
-                <div className="card-topbar">{themeToggle}</div>
-                <h1 className="auth-title">Photo2Go</h1>
-                <p className="subtitle">User authentication</p>
+                <div className="card-topbar">
+                    <div className="header-actions">
+                        {languageSelect}
+                        {themeToggle}
+                    </div>
+                </div>
+                <h1 className="auth-title">{t("common.brand")}</h1>
+                <p className="subtitle">{t("auth.subtitle")}</p>
 
                 <AuthTabs mode={mode} setMode={setMode} setMessage={setMessage} />
 

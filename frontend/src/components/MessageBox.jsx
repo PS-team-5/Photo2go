@@ -1,4 +1,8 @@
+import { useI18n } from "../i18n/useI18n";
+
 function MessageBox({ message, type = "info", onClose }) {
+    const { t } = useI18n();
+
     if (!message) return null;
 
     const safeType =
@@ -18,8 +22,8 @@ function MessageBox({ message, type = "info", onClose }) {
                     type="button"
                     className="toast-close"
                     onClick={onClose}
-                    aria-label="Close notification"
-                    title="Close"
+                    aria-label={t("common.close")}
+                    title={t("common.close")}
                 >
                     ×
                 </button>

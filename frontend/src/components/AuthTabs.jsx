@@ -1,4 +1,8 @@
+import { useI18n } from "../i18n/useI18n";
+
 function AuthTabs({ mode, setMode, setMessage }) {
+    const { t } = useI18n();
+
     return (
         <div className="switch-buttons">
             <button
@@ -9,7 +13,7 @@ function AuthTabs({ mode, setMode, setMessage }) {
                 }}
                 type="button"
             >
-                Login
+                {t("common.login")}
             </button>
             <button
                 className={mode === "register" ? "active" : ""}
@@ -19,7 +23,7 @@ function AuthTabs({ mode, setMode, setMessage }) {
                 }}
                 type="button"
             >
-                Register
+                {t("common.register")}
             </button>
         </div>
     );
