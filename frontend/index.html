@@ -5,6 +5,21 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>frontend</title>
+    <script>
+      (function () {
+        var storageKey = "photo2go-theme";
+        var storedTheme = window.localStorage.getItem(storageKey);
+        var hasStoredTheme = storedTheme === "light" || storedTheme === "dark";
+        var theme = hasStoredTheme
+          ? storedTheme
+          : window.matchMedia("(prefers-color-scheme: dark)").matches
+            ? "dark"
+            : "light";
+
+        document.documentElement.dataset.theme = theme;
+        document.documentElement.style.colorScheme = theme;
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>
