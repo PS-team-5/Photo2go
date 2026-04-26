@@ -49,7 +49,7 @@
     display: flex;
     align-items: center;
     gap: 12px;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
     justify-content: flex-end;
 }
 
@@ -311,6 +311,30 @@ textarea:focus-visible {
     font-size: 12px;
     font-weight: 800;
     line-height: 1;
+}
+
+.preference-field {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+    flex-shrink: 0;
+}
+
+.preference-label {
+    color: var(--text-muted);
+    font-size: 13px;
+    font-weight: 700;
+    line-height: 1.2;
+    white-space: nowrap;
+}
+
+.preference-select {
+    width: auto;
+    min-width: 92px;
+    padding: 10px 12px;
+    font-weight: 700;
+    flex-shrink: 0;
 }
 
 .upload-section {
@@ -878,16 +902,22 @@ textarea:focus-visible {
 
     .header-actions {
         width: 100%;
-        flex-direction: column;
-        align-items: stretch;
+        justify-content: flex-start;
+        overflow-x: auto;
+        padding-bottom: 2px;
     }
 
     .secondary-button {
-        width: 100%;
+        width: auto;
     }
 
     .theme-toggle {
         justify-content: center;
+    }
+
+    .preference-field,
+    .preference-select {
+        width: auto;
     }
 
     .route-topline {

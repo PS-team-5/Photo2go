@@ -1,3 +1,5 @@
+import { useI18n } from "../i18n/useI18n";
+
 function formatPercent(value) {
     return `${Math.round(Number(value || 0) * 100)}%`;
 }
@@ -11,6 +13,7 @@ function RouteTimeline({
     similarLocations = [],
     headerAside = null,
 }) {
+    const { t } = useI18n();
     const Tag = as;
 
     if (!analysis || similarLocations.length === 0) {
@@ -31,17 +34,18 @@ function RouteTimeline({
 
             <div className="route-timeline">
                 <article className="route-stop route-stop-start">
-                    <div className="route-marker">Start</div>
+                    <div className="route-marker">{t("route.start")}</div>
                     <div className="route-content">
                         <div className="route-topline">
                             <strong>{analysis.name}</strong>
                             <span className="similarity-badge similarity-badge-primary">
-                                {formatPercent(analysis.confidence)} confidence
+                                {formatPercent(analysis.confidence)} {t("route.confidence")}
                             </span>
                         </div>
-                        <p>
-                            {analysis.objectType} in {analysis.city}
-                        </p>
+                        <p>{t("route.objectInCity", {
+                            objectType: analysis.objectType,
+                            city: analysis.city,
+                        })}</p>
                         <small>
                             {analysis.architectureStyle} | {analysis.period}
                         </small>
@@ -55,7 +59,7 @@ function RouteTimeline({
                             <div className="route-topline">
                                 <strong>{location.name}</strong>
                                 <span className="similarity-badge">
-                                    {formatPercent(location.similarity)} match
+                                    {formatPercent(location.similarity)} {t("route.match")}
                                 </span>
                             </div>
                             <p>{location.city}</p>

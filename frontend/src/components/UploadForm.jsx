@@ -1,19 +1,20 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import RouteTimeline from "./RouteTimeline";
+import { useI18n } from "../i18n/useI18n";
 
 function formatPercent(value) {
     return `${Math.round(Number(value || 0) * 100)}%`;
 }
 
-function formatOpenStatus(isOpen) {
-    return isOpen ? "Open" : "Currently closed";
+function formatOpenStatus(isOpen, t) {
+    return isOpen ? t("route.open") : t("route.closed");
 }
 
-function formatUnescoStatus(isUnescoProtected) {
-    return isUnescoProtected ? "Yes" : "No";
+function formatUnescoStatus(isUnescoProtected, t) {
+    return isUnescoProtected ? t("common.yes") : t("common.no");
 }
 
-function formatRouteDate(value) {
+function formatRouteDate(value, locale) {
     if (!value) {
         return "";
     }
@@ -24,7 +25,7 @@ function formatRouteDate(value) {
         return value;
     }
 
-    return new Intl.DateTimeFormat("lt-LT", {
+    return new Intl.DateTimeFormat(locale, {
         dateStyle: "medium",
         timeStyle: "short",
     }).format(date);
@@ -34,13 +35,13 @@ function getRouteStopCount(route) {
     return (route?.similarLocations?.length ?? 0) + 1;
 }
 
-function getFeedbackLabel(value) {
+function getFeedbackLabel(value, t) {
     if (value === "Patiko") {
-        return "Liked";
+        return t("upload.like");
     }
 
     if (value === "Nepatiko") {
-        return "Disliked";
+        return t("upload.dislike");
     }
 
     return "";
@@ -59,6 +60,7 @@ function UploadForm({
     routesLoading,
     routesError,
 }) {
+    const { locale, t } = useI18n();
     const analysis = analysisResult?.analysis;
     const file = analysisResult?.file;
     const similarLocations = analysisResult?.similarLocations ?? [];
@@ -86,7 +88,7 @@ function UploadForm({
         Boolean(analysis && detectedLocationId) &&
         !selectedFeedback &&
         typeof onFeedbackSelect === "function";
-    const feedbackSummary = getFeedbackLabel(selectedFeedback);
+    const feedbackSummary = getFeedbackLabel(selectedFeedback, t);
     const primarySimilarLocation = similarLocations[0] ?? null;
 
     useEffect(() => {
@@ -109,7 +111,7 @@ function UploadForm({
         <div className="upload-section">
             <form onSubmit={handleAnalyzeImage} className="auth-form">
                 <label className="upload-label" htmlFor="image-upload">
-                    Upload a tourist place photo
+                    {t("upload.uploadLabel")}
                 </label>
                 <input
                     ref={fileInputRef}
@@ -121,93 +123,93 @@ function UploadForm({
                 />
                 {selectedFile ? (
                     <p className="file-hint">
-                        Selected file: <strong>{selectedFile.name}</strong>
+                        {t("upload.selectedFile", { name: selectedFile.name })}
                     </p>
                 ) : null}
                 {selectedFile ? (
                     <div className="image-preview">
-                        <img src={previewUrl} alt="Preview" />
+                        <img src={previewUrl} alt={t("upload.previewAlt")} />
                         <button
                             type="button"
                             onClick={handleRemoveImage}
                             className="image-remove-button"
-                            aria-label="Remove selected image"
+                            aria-label={t("upload.removeSelectedImage")}
                         >
                             x
                         </button>
                     </div>
                 ) : null}
                 <button type="submit" disabled={loading}>
-                    {loading ? "Analyzing..." : "Analyze image"}
+                    {loading ? t("upload.analyzing") : t("upload.analyzeImage")}
                 </button>
             </form>
 
             <div className="filter-panel">
-                <h3 className="filter-title">Filter locations</h3>
+                <h3 className="filter-title">{t("upload.filterLocations")}</h3>
 
                 <select
                     className="filter-select"
                     value={selectedCategory}
                     onChange={(e) => setSelectedCategory(e.target.value)}
                 >
-                    <option value="">All</option>
-                    <option value="Church">Church</option>
-                    <option value="Castle">Castle</option>
-                    <option value="Park">Park</option>
+                    <option value="">{t("common.all")}</option>
+                    <option value="Church">{t("upload.categoryChurch")}</option>
+                    <option value="Castle">{t("upload.categoryCastle")}</option>
+                    <option value="Park">{t("upload.categoryPark")}</option>
                 </select>
 
                 {selectedCategory && filteredLocations.length === 0 ? (
                     <p className="filter-empty-message">
-                        No locations found for selected category
+                        {t("upload.noLocationsForCategory")}
                     </p>
                 ) : null}
             </div>
 
             {analysis && file ? (
                 <section className="result-card">
-                    <h2>Analysis result</h2>
+                    <h2>{t("upload.analysisResult")}</h2>
                     <div className="result-grid">
                         <div className="result-item">
-                            <span>File name</span>
+                            <span>{t("upload.fileName")}</span>
                             <strong>{file.originalFileName}</strong>
                         </div>
                         <div className="result-item">
-                            <span>MIME type</span>
+                            <span>{t("upload.mimeType")}</span>
                             <strong>{file.mimeType}</strong>
                         </div>
                         <div className="result-item">
-                            <span>File size</span>
-                            <strong>{file.size} bytes</strong>
+                            <span>{t("upload.fileSize")}</span>
+                            <strong>{file.size} {t("upload.bytes")}</strong>
                         </div>
                         <div className="result-item">
-                            <span>Object type</span>
+                            <span>{t("upload.objectType")}</span>
                             <strong>{analysis.objectType}</strong>
                         </div>
                         <div className="result-item">
-                            <span>Architecture style</span>
+                            <span>{t("upload.architectureStyle")}</span>
                             <strong>{analysis.architectureStyle}</strong>
                         </div>
                         <div className="result-item">
-                            <span>Period</span>
+                            <span>{t("upload.period")}</span>
                             <strong>{analysis.period}</strong>
                         </div>
                         <div className="result-item">
-                            <span>City</span>
+                            <span>{t("upload.city")}</span>
                             <strong>{analysis.city}</strong>
                         </div>
                         <div className="result-item">
-                            <span>Confidence</span>
+                            <span>{t("upload.confidence")}</span>
                             <strong>{formatPercent(analysis.confidence)}</strong>
                         </div>
                         {detectedCategory ? (
                             <div className="result-item">
-                                <span>Detected category</span>
+                                <span>{t("upload.detectedCategory")}</span>
                                 <strong>{detectedCategory}</strong>
                             </div>
                         ) : null}
                         {primarySimilarLocation ? (
                             <div className="result-item result-item-status">
-                                <span>Status</span>
+                                <span>{t("upload.status")}</span>
                                 <button
                                     type="button"
                                     className={`status-button ${
@@ -216,10 +218,10 @@ function UploadForm({
                                             : "status-button-closed"
                                     }`}
                                 >
-                                    {formatOpenStatus(primarySimilarLocation.isOpen)}
+                                    {formatOpenStatus(primarySimilarLocation.isOpen, t)}
                                 </button>
                                 <small>
-                                    Based on first similar route:{" "}
+                                    {t("upload.basedOnFirstSimilarRouteLabel")}{" "}
                                     <strong>{primarySimilarLocation.name}</strong>
                                 </small>
                             </div>
@@ -229,10 +231,13 @@ function UploadForm({
                     {canShowFeedbackButtons ? (
                         <div className="feedback-panel">
                             <div className="feedback-copy">
-                                <h3>Did we find what you were looking for?</h3>
+                                <h3>{t("upload.feedbackTitle")}</h3>
                                 <p>
-                                    Click <strong>Like</strong> or <strong>Dislike</strong>.
-                                    This is optional feedback about the accuracy of the AI recognition.
+                                    {t("upload.feedbackDescriptionStart")}{" "}
+                                    <strong>{t("upload.like")}</strong>{" "}
+                                    {t("upload.feedbackDescriptionMiddle")}{" "}
+                                    <strong>{t("upload.dislike")}</strong>.{" "}
+                                    {t("upload.feedbackDescriptionEnd")}
                                 </p>
                             </div>
                             <div className="feedback-actions">
@@ -242,7 +247,7 @@ function UploadForm({
                                     onClick={() => onFeedbackSelect("Patiko")}
                                     disabled={feedbackLoading}
                                 >
-                                    Like
+                                    {t("upload.like")}
                                 </button>
                                 <button
                                     type="button"
@@ -250,7 +255,7 @@ function UploadForm({
                                     onClick={() => onFeedbackSelect("Nepatiko")}
                                     disabled={feedbackLoading}
                                 >
-                                    Dislike
+                                    {t("upload.dislike")}
                                 </button>
                             </div>
                         </div>
@@ -260,7 +265,7 @@ function UploadForm({
                         <div className="feedback-summary">
                             <span className="feedback-summary-badge">{feedbackSummary}</span>
                             <p>
-                               Thank you for your feedback.
+                                {t("upload.feedbackThanks")}
                             </p>
                         </div>
                     ) : null}
@@ -271,27 +276,27 @@ function UploadForm({
                 <section className="result-card route-card">
                     <div className="route-header">
                         <div>
-                            <h2>Similar places route</h2>
+                            <h2>{t("route.similarPlacesRoute")}</h2>
                             <p className="route-subtitle">
-                                Start from the detected place and continue through the most
-                                suitable Vilnius locations from the database.
+                                {t("route.similarPlacesRouteSubtitle")}
                             </p>
                         </div>
                     </div>
 
                     <div className="route-timeline">
                         <article className="route-stop route-stop-start">
-                            <div className="route-marker">Start</div>
+                            <div className="route-marker">{t("route.start")}</div>
                             <div className="route-content">
                                 <div className="route-topline">
                                     <strong>{analysis.name}</strong>
                                     <span className="similarity-badge similarity-badge-primary">
-                                        {formatPercent(analysis.confidence)} confidence
+                                        {formatPercent(analysis.confidence)} {t("route.confidence")}
                                     </span>
                                 </div>
-                                <p>
-                                    {analysis.objectType} in {analysis.city}
-                                </p>
+                                <p>{t("route.objectInCity", {
+                                    objectType: analysis.objectType,
+                                    city: analysis.city,
+                                })}</p>
                                 <small>
                                     {analysis.architectureStyle} | {analysis.period}
                                 </small>
@@ -305,13 +310,13 @@ function UploadForm({
                                     <div className="route-topline">
                                         <strong>{location.name}</strong>
                                         <span className="similarity-badge">
-                                            {formatPercent(location.similarity)} match
+                                            {formatPercent(location.similarity)} {t("route.match")}
                                         </span>
                                     </div>
                                     <p>{location.city}</p>
                                     <p className="location-meta">
-                                        {location.objectType} | {location.category} | UNESCO:{" "}
-                                        {formatUnescoStatus(location.isUnescoProtected)}
+                                        {location.objectType} | {location.category} | {t("route.unesco")}:{" "}
+                                        {formatUnescoStatus(location.isUnescoProtected, t)}
                                     </p>
                                     <p
                                         className={`location-status ${
@@ -320,7 +325,7 @@ function UploadForm({
                                                 : "location-status-closed"
                                         }`}
                                     >
-                                        {formatOpenStatus(location.isOpen)}
+                                        {formatOpenStatus(location.isOpen, t)}
                                     </p>
                                     <small>
                                         {location.architectureStyle} | {location.period}
@@ -348,15 +353,15 @@ function UploadForm({
             <section className="result-card route-history-section">
                 <div className="route-header">
                     <div>
-                        <h2>My generated routes</h2>
+                        <h2>{t("route.generatedRoutes")}</h2>
                         <p className="route-subtitle">
-                            Only routes generated by your account are shown here.
+                            {t("route.generatedRoutesSubtitle")}
                         </p>
                     </div>
                 </div>
 
                 {routesLoading ? (
-                    <p className="muted-message">Loading your saved routes...</p>
+                    <p className="muted-message">{t("route.loadingRoutes")}</p>
                 ) : null}
 
                 {!routesLoading && routesError ? (
@@ -365,7 +370,7 @@ function UploadForm({
 
                 {!routesLoading && !routesError && routeHistory.length === 0 ? (
                     <p className="muted-message">
-                        You do not have any generated routes yet.
+                        {t("route.noGeneratedRoutes")}
                     </p>
                 ) : null}
 
@@ -389,32 +394,36 @@ function UploadForm({
                                         <div className="route-history-main">
                                             <div className="route-history-title-row">
                                                 <strong>
-                                                    {route.analysis?.name || "Saved route"}
+                                                    {route.analysis?.name || t("common.savedRoute")}
                                                 </strong>
                                                 <span className="route-history-city">
-                                                    {route.analysis?.city || "Unknown city"}
+                                                    {route.analysis?.city || t("common.unknownCity")}
                                                 </span>
                                             </div>
                                             <p className="route-history-meta">
-                                                {formatRouteDate(route.createdAtUtc)}
+                                                {formatRouteDate(route.createdAtUtc, locale)}
                                             </p>
                                             <div className="route-history-tags">
                                                 <span className="route-history-tag">
-                                                    {route.file?.originalFileName || "Image"}
+                                                    {route.file?.originalFileName || t("common.image")}
                                                 </span>
                                                 <span className="route-history-tag">
-                                                    {getRouteStopCount(route)} stops
+                                                    {t("route.stopsCount", {
+                                                        count: getRouteStopCount(route),
+                                                    })}
                                                 </span>
                                                 <span className="route-history-tag">
                                                     {route.analysis?.architectureStyle ||
-                                                        "Unknown style"}
+                                                        t("common.unknownStyle")}
                                                 </span>
                                             </div>
                                         </div>
 
                                         <span className="route-history-action">
                                             <span>
-                                                {isExpanded ? "Hide route" : "Show route"}
+                                                {isExpanded
+                                                    ? t("route.hideRoute")
+                                                    : t("route.showRoute")}
                                             </span>
                                             <span
                                                 className={`route-history-chevron${
@@ -431,8 +440,8 @@ function UploadForm({
                                         <RouteTimeline
                                             as="div"
                                             className="route-history-panel route-card"
-                                            title={route.analysis?.name || "Saved route"}
-                                            subtitle="Previously generated route saved to your account."
+                                            title={route.analysis?.name || t("common.savedRoute")}
+                                            subtitle={t("route.savedRouteSubtitle")}
                                             analysis={route.analysis}
                                             similarLocations={route.similarLocations}
                                         />
