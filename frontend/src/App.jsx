@@ -10,7 +10,31 @@ const USER_API_BASE_URL = "http://localhost:5218/api/user";
 const ANALYZE_IMAGE_URL = "http://localhost:5218/analyze-image";
 const ANALYZE_IMAGE_FEEDBACK_URL = "http://localhost:5218/analyze-image/feedback";
 const AUTH_STORAGE_KEY = "photo2go-user";
+const THEME_STORAGE_KEY = "photo2go-theme";
+const DARK_THEME_MEDIA_QUERY = "(prefers-color-scheme: dark)";
 const VILNIUS_CITY_NAME = "vilnius";
+
+function getSystemTheme() {
+    if (typeof window === "undefined") {
+        return "light";
+    }
+
+    return window.matchMedia(DARK_THEME_MEDIA_QUERY).matches ? "dark" : "light";
+}
+
+function getStoredTheme() {
+    if (typeof window === "undefined") {
+        return null;
+    }
+
+    const storedTheme = window.localStorage.getItem(THEME_STORAGE_KEY);
+
+    if (storedTheme === "light" || storedTheme === "dark") {
+        return storedTheme;
+    }
+
+    return null;
+}
 
 async function readResponsePayload(response) {
     const contentType = response.headers.get("content-type") || "";
@@ -65,6 +89,8 @@ function App() {
     const [routeHistory, setRouteHistory] = useState([]);
     const [routesLoading, setRoutesLoading] = useState(false);
     const [routesError, setRoutesError] = useState("");
+    const [theme, setTheme] = useState(() => getStoredTheme() || getSystemTheme());
+    const [hasSavedTheme, setHasSavedTheme] = useState(() => Boolean(getStoredTheme()));
 
     const setMessage = (text, type = "info") => {
         setMessageState({ text, type });
@@ -111,6 +137,38 @@ function App() {
             localStorage.removeItem(AUTH_STORAGE_KEY);
         }
     }, []);
+
+    useEffect(() => {
+        document.documentElement.dataset.theme = theme;
+        document.documentElement.style.colorScheme = theme;
+    }, [theme]);
+
+    useEffect(() => {
+        if (hasSavedTheme || typeof window === "undefined") {
+            return undefined;
+        }
+
+        const mediaQuery = window.matchMedia(DARK_THEME_MEDIA_QUERY);
+        const handleChange = (event) => {
+            setTheme(event.matches ? "dark" : "light");
+        };
+
+        handleChange(mediaQuery);
+
+        if (typeof mediaQuery.addEventListener === "function") {
+            mediaQuery.addEventListener("change", handleChange);
+
+            return () => {
+                mediaQuery.removeEventListener("change", handleChange);
+            };
+        }
+
+        mediaQuery.addListener(handleChange);
+
+        return () => {
+            mediaQuery.removeListener(handleChange);
+        };
+    }, [hasSavedTheme]);
 
     useEffect(() => {
         if (!loggedInUser?.id) {
@@ -429,6 +487,30 @@ function App() {
         });
     };
 
+    const handleThemeToggle = () => {
+        setTheme((currentTheme) => {
+            const nextTheme = currentTheme === "dark" ? "light" : "dark";
+            window.localStorage.setItem(THEME_STORAGE_KEY, nextTheme);
+            return nextTheme;
+        });
+        setHasSavedTheme(true);
+    };
+
+    const themeToggle = (
+        <button
+            type="button"
+            className="secondary-button theme-toggle"
+            onClick={handleThemeToggle}
+            aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}
+            title={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}
+        >
+            <span className="theme-toggle-label">Theme</span>
+            <span className="theme-toggle-value">
+                {theme === "dark" ? "Dark" : "Light"}
+            </span>
+        </button>
+    );
+
     if (loggedInUser) {
         return (
             <div className="auth-page">
@@ -445,13 +527,16 @@ function App() {
                                 Logged in as <strong>{loggedInUser.username}</strong>
                             </p>
                         </div>
-                        <button
-                            type="button"
-                            className="secondary-button"
-                            onClick={handleLogout}
-                        >
-                            Logout
-                        </button>
+                        <div className="header-actions">
+                            {themeToggle}
+                            <button
+                                type="button"
+                                className="secondary-button"
+                                onClick={handleLogout}
+                            >
+                                Logout
+                            </button>
+                        </div>
                     </div>
 
                     <UploadForm
@@ -480,6 +565,7 @@ function App() {
                 onClose={() => setMessage("")}
             />
             <div className="auth-card">
+                <div className="card-topbar">{themeToggle}</div>
                 <h1 className="auth-title">Photo2Go</h1>
                 <p className="subtitle">User authentication</p>
 

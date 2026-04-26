@@ -142,10 +142,11 @@ function UploadForm({
                 </button>
             </form>
 
-            <div style={{ marginTop: "20px" }}>
-                <h3>Filter locations</h3>
+            <div className="filter-panel">
+                <h3 className="filter-title">Filter locations</h3>
 
                 <select
+                    className="filter-select"
                     value={selectedCategory}
                     onChange={(e) => setSelectedCategory(e.target.value)}
                 >
@@ -156,7 +157,7 @@ function UploadForm({
                 </select>
 
                 {selectedCategory && filteredLocations.length === 0 ? (
-                    <p style={{ marginTop: "10px" }}>
+                    <p className="filter-empty-message">
                         No locations found for selected category
                     </p>
                 ) : null}
