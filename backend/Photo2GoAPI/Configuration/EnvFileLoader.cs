@@ -64,6 +64,7 @@ public static class EnvFileLoader
         Map(configurationMap, "OPENAI_MODEL", "AI:Model");
         Map(configurationMap, "OPENAI_BASE_URL", "AI:BaseUrl");
         Map(configurationMap, "OPENAI_TIMEOUT_SECONDS", "AI:TimeoutSeconds");
+        Map(configurationMap, "ROUTE_GENERATION_TIMEOUT_SECONDS", "RouteGeneration:TimeoutSeconds");
 
         return configurationMap;
     }

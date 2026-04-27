@@ -62,6 +62,8 @@ export const translations = {
             chooseImageFirst: "Pirmiausia pasirinkite nuotrauką.",
             imageAnalysisFailedHttp:
                 "Nuotraukos analizė nepavyko (HTTP {status}).",
+            routeGenerationTimeout:
+                "Nepavyko sugeneruoti maršruto per 15 sekundžių. Bandykite dar kartą.",
             imageAnalysisSuccess: "Nuotrauka sėkmingai išanalizuota.",
             imageAnalysisUnavailable:
                 "Nepavyko prisijungti prie nuotraukų analizės tarnybos.",
@@ -183,6 +185,8 @@ export const translations = {
             chooseImageFirst: "Please choose an image first.",
             imageAnalysisFailedHttp:
                 "Image analysis failed (HTTP {status}).",
+            routeGenerationTimeout:
+                "Could not generate the route within 15 seconds. Please try again.",
             imageAnalysisSuccess: "Image analyzed successfully.",
             imageAnalysisUnavailable:
                 "Could not connect to image analysis service.",
@@ -304,6 +308,8 @@ export const translations = {
             chooseImageFirst: "Сначала выберите изображение.",
             imageAnalysisFailedHttp:
                 "Анализ изображения не удался (HTTP {status}).",
+            routeGenerationTimeout:
+                "Не удалось сформировать маршрут в течение 15 секунд. Попробуйте ещё раз.",
             imageAnalysisSuccess: "Изображение успешно проанализировано.",
             imageAnalysisUnavailable:
                 "Не удалось подключиться к сервису анализа изображений.",

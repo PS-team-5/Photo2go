@@ -50,17 +50,22 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
     private sealed class FakeImageAnalysisClient : IImageAnalysisClient
     {
         // Sis metodas apsimeta, kad analizuoja nuotrauka.
-        public Task<AiImageAnalysisPayload> AnalyzeAsync(
+        public async Task<AiImageAnalysisPayload> AnalyzeAsync(
             IFormFile image,
             CancellationToken cancellationToken = default)
         {
             // Failo vardas sumazinamas iki lowercase, kad butu paprasciau tikrinti salygas.
             var fileName = image.FileName.ToLowerInvariant();
 
+            if (fileName.Contains("slow-timeout", StringComparison.Ordinal))
+            {
+                await Task.Delay(TimeSpan.FromSeconds(20), cancellationToken);
+            }
+
             // Jei failo vardas rodo low-confidence atveji, graziname silpna AI rezultata.
             if (fileName.Contains("low-confidence", StringComparison.Ordinal))
             {
-                return Task.FromResult(new AiImageAnalysisPayload
+                return new AiImageAnalysisPayload
                 {
                     // Nurodomas netikro tiekejo pavadinimas.
                     Provider = "FakeAI",
@@ -75,11 +80,11 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
                                     "confidence": 0.65
                                   }
                                   """
-                });
+                };
             }
 
             // Visais kitais atvejais grazinamas sekmingas AI rezultatas.
-            return Task.FromResult(new AiImageAnalysisPayload
+            return new AiImageAnalysisPayload
             {
                 // Nurodomas netikro tiekejo pavadinimas.
                 Provider = "FakeAI",
@@ -94,7 +99,7 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
                                 "confidence": 0.95
                               }
                               """
-            });
+            };
         }
     }
 }
