@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using Photo2GoAPI.Configuration;
+using Photo2GoAPI.Exceptions;
 using Photo2GoAPI.Models;
 using Photo2GoAPI.Services;
 
@@ -16,6 +17,7 @@ public class AnalyzeImageController : ControllerBase
     private readonly GeneratedRouteService _generatedRouteService;
     private readonly RecommendationFeedbackStore _recommendationFeedbackStore;
     private readonly ImageUploadOptions _options;
+    private readonly RouteGenerationOptions _routeGenerationOptions;
 
     public AnalyzeImageController(
         ImageAnalysisService imageAnalysisService,
@@ -23,7 +25,8 @@ public class AnalyzeImageController : ControllerBase
         SimilarPlaceAlgorithService similarPlaceAlgorithService,
         GeneratedRouteService generatedRouteService,
         RecommendationFeedbackStore recommendationFeedbackStore,
-        IOptions<ImageUploadOptions> options)
+        IOptions<ImageUploadOptions> options,
+        IOptions<RouteGenerationOptions> routeGenerationOptions)
     {
         _imageAnalysisService = imageAnalysisService;
         _imageUploadService = imageUploadService;
@@ -31,6 +34,7 @@ public class AnalyzeImageController : ControllerBase
         _generatedRouteService = generatedRouteService;
         _recommendationFeedbackStore = recommendationFeedbackStore;
         _options = options.Value;
+        _routeGenerationOptions = routeGenerationOptions.Value;
     }
 
     [HttpPost("analyze-image")]
@@ -39,82 +43,100 @@ public class AnalyzeImageController : ControllerBase
         [FromForm] AnalyzeImageRequest request,
         CancellationToken cancellationToken)
     {
-        var shouldSaveGeneratedRoute = request.UserId is > 0;
+        using var timeoutCts = new CancellationTokenSource(
+            TimeSpan.FromSeconds(_routeGenerationOptions.TimeoutSeconds));
+        using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(
+            cancellationToken,
+            timeoutCts.Token);
+        var timeoutToken = linkedCts.Token;
 
-        if (shouldSaveGeneratedRoute &&
-            !await _generatedRouteService.UserExistsAsync(request.UserId!.Value, cancellationToken))
+        try
         {
-            return NotFound(new
+            var shouldSaveGeneratedRoute = request.UserId is > 0;
+
+            if (shouldSaveGeneratedRoute &&
+                !await _generatedRouteService.UserExistsAsync(request.UserId!.Value, timeoutToken))
             {
-                message = "Vartotojas nerastas."
-            });
-        }
+                return NotFound(new
+                {
+                    message = "Vartotojas nerastas."
+                });
+            }
 
-        var validationResult = _imageUploadService.Validate(request.Image);
+            var validationResult = _imageUploadService.Validate(request.Image);
 
-        if (!validationResult.IsValid)
-        {
-            return BadRequest(new
+            if (!validationResult.IsValid)
             {
-                message = validationResult.ErrorMessage,
-                maxFileSizeInBytes = _options.MaxFileSizeInBytes
-            });
-        }
+                return BadRequest(new
+                {
+                    message = validationResult.ErrorMessage,
+                    maxFileSizeInBytes = _options.MaxFileSizeInBytes
+                });
+            }
 
-        var analysisResult = await _imageAnalysisService.AnalyzeAsync(request.Image!, cancellationToken);
-        var detectedLocation = await _similarPlaceAlgorithService.FindDetectedLocationAsync(
-            analysisResult,
-            cancellationToken);
-        if (detectedLocation is not null)
-        {
-            var adjustedConfidence = await _recommendationFeedbackStore.ApplyConfidenceAdjustmentAsync(
-                analysisResult.Confidence,
-                detectedLocation,
-                cancellationToken);
-
-            analysisResult = new ImageAnalysisResult
-            {
-                Name = analysisResult.Name,
-                ObjectType = analysisResult.ObjectType,
-                ArchitectureStyle = analysisResult.ArchitectureStyle,
-                Period = analysisResult.Period,
-                City = analysisResult.City,
-                Confidence = adjustedConfidence
-            };
-        }
-
-        var similarLocations = await _similarPlaceAlgorithService.FindTopSimilarAsync(
-            analysisResult,
-            cancellationToken: cancellationToken);
-
-        if (shouldSaveGeneratedRoute)
-        {
-            await _generatedRouteService.SaveAsync(
-                request.UserId!.Value,
-                validationResult.Data!,
+            var analysisResult = await _imageAnalysisService.AnalyzeAsync(request.Image!, timeoutToken);
+            var detectedLocation = await _similarPlaceAlgorithService.FindDetectedLocationAsync(
                 analysisResult,
-                similarLocations,
-                cancellationToken);
+                timeoutToken);
+            if (detectedLocation is not null)
+            {
+                var adjustedConfidence = await _recommendationFeedbackStore.ApplyConfidenceAdjustmentAsync(
+                    analysisResult.Confidence,
+                    detectedLocation,
+                    timeoutToken);
+
+                analysisResult = new ImageAnalysisResult
+                {
+                    Name = analysisResult.Name,
+                    ObjectType = analysisResult.ObjectType,
+                    ArchitectureStyle = analysisResult.ArchitectureStyle,
+                    Period = analysisResult.Period,
+                    City = analysisResult.City,
+                    Confidence = adjustedConfidence
+                };
+            }
+
+            var similarLocations = await _similarPlaceAlgorithService.FindTopSimilarAsync(
+                analysisResult,
+                cancellationToken: timeoutToken);
+
+            if (shouldSaveGeneratedRoute)
+            {
+                await _generatedRouteService.SaveAsync(
+                    request.UserId!.Value,
+                    validationResult.Data!,
+                    analysisResult,
+                    similarLocations,
+                    timeoutToken);
+            }
+
+            var routeGenerated = similarLocations.Count > 0;
+            var routeMessage = routeGenerated
+                ? "Marsrutas sekmingai sugeneruotas."
+                : "Marsrutas nesugeneruotas: nerasta panasiu vietu duomenu bazeje.";
+
+            var response = new AnalyzeImageResultResponse
+            {
+                Message = "Nuotrauka sekmingai priimta analizei.",
+                RouteGenerated = routeGenerated,
+                RouteMessage = routeMessage,
+                File = validationResult.Data!,
+                Analysis = analysisResult,
+                DetectedLocationId = detectedLocation?.Id,
+                DetectedCategory = detectedLocation?.Category,
+                SimilarLocations = similarLocations
+            };
+
+            return Ok(response);
         }
-
-        var routeGenerated = similarLocations.Count > 0;
-        var routeMessage = routeGenerated
-            ? "Marsrutas sekmingai sugeneruotas."
-            : "Marsrutas nesugeneruotas: nerasta panasiu vietu duomenu bazeje.";
-
-        var response = new AnalyzeImageResultResponse
+        catch (OperationCanceledException ex)
+            when (timeoutCts.IsCancellationRequested && !cancellationToken.IsCancellationRequested)
         {
-            Message = "Nuotrauka sekmingai priimta analizei.",
-            RouteGenerated = routeGenerated,
-            RouteMessage = routeMessage,
-            File = validationResult.Data!,
-            Analysis = analysisResult,
-            DetectedLocationId = detectedLocation?.Id,
-            DetectedCategory = detectedLocation?.Category,
-            SimilarLocations = similarLocations
-        };
-
-        return Ok(response);
+            throw new RouteGenerationTimeoutException(
+                _routeGenerationOptions.TimeoutSeconds,
+                "Marsruto generavimo laikas virsijo SLA riba.",
+                ex);
+        }
     }
 
     [HttpPost("analyze-image/feedback")]

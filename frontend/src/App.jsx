@@ -11,6 +11,7 @@ import { LANGUAGE_OPTIONS } from "./i18n/translations";
 const USER_API_BASE_URL = "http://localhost:5218/api/user";
 const ANALYZE_IMAGE_URL = "http://localhost:5218/analyze-image";
 const ANALYZE_IMAGE_FEEDBACK_URL = "http://localhost:5218/analyze-image/feedback";
+const ANALYZE_IMAGE_TIMEOUT_MS = 15_000;
 const AUTH_STORAGE_KEY = "photo2go-user";
 const THEME_STORAGE_KEY = "photo2go-theme";
 const DARK_THEME_MEDIA_QUERY = "(prefers-color-scheme: dark)";
@@ -363,6 +364,13 @@ function App() {
         setAnalysisResult(null);
         setSelectedFeedback("");
 
+        const abortController = new AbortController();
+        let didTimeout = false;
+        const timeoutId = window.setTimeout(() => {
+            didTimeout = true;
+            abortController.abort();
+        }, ANALYZE_IMAGE_TIMEOUT_MS);
+
         try {
             const formData = new FormData();
             formData.append("userId", String(loggedInUser.id));
@@ -371,14 +379,19 @@ function App() {
             const response = await fetch(ANALYZE_IMAGE_URL, {
                 method: "POST",
                 body: formData,
+                signal: abortController.signal,
             });
 
             const data = await readResponsePayload(response);
 
             if (!response.ok) {
-                setMessage(t("messages.imageAnalysisFailedHttp", {
-                    status: response.status,
-                }), "error");
+                setMessage(
+                    data?.message ||
+                        t("messages.imageAnalysisFailedHttp", {
+                            status: response.status,
+                        }),
+                    "error",
+                );
                 return;
             }
 
@@ -397,9 +410,15 @@ function App() {
             setAnalysisResult(data);
             setMessage(t("messages.imageAnalysisSuccess"), "success");
             await refreshRouteHistory(loggedInUser.id);
-        } catch {
+        } catch (error) {
+            if (didTimeout || error?.name === "AbortError") {
+                setMessage(t("messages.routeGenerationTimeout"), "error");
+                return;
+            }
+
             setMessage(t("messages.imageAnalysisUnavailable"), "error");
         } finally {
+            window.clearTimeout(timeoutId);
             setLoading(false);
         }
     };

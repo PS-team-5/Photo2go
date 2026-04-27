@@ -1,5 +1,9 @@
 using System.Net;
+using System.Diagnostics;
 using System.Text.Json;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
+using Photo2GoAPI.Configuration;
 using Xunit;
 
 namespace Photo2GoAPI.IntegrationTests;
@@ -7,13 +11,24 @@ namespace Photo2GoAPI.IntegrationTests;
 
 public class AnalyzeImageEndpointTests : IClassFixture<CustomWebApplicationFactory>
 {
-    
+    private readonly CustomWebApplicationFactory _factory;
     private readonly HttpClient _client;
 
-    
     public AnalyzeImageEndpointTests(CustomWebApplicationFactory factory)
     {
+        _factory = factory;
         _client = factory.CreateClient();
+    }
+
+    [Fact]
+    public void AnalyzeImage_UsesFifteenSecondRouteGenerationTimeout()
+    {
+        using var scope = _factory.Services.CreateScope();
+        var options = scope.ServiceProvider
+            .GetRequiredService<IOptions<RouteGenerationOptions>>()
+            .Value;
+
+        Assert.Equal(15, options.TimeoutSeconds);
     }
 
     // Theory leidzia paleisti ta pati testa su keliais skirtingais duomenu rinkiniais.
@@ -67,6 +82,38 @@ public class AnalyzeImageEndpointTests : IClassFixture<CustomWebApplicationFacto
         {
             Assert.Equal("Vilnius", location.GetProperty("city").GetString());
         }
+    }
+
+    [Fact]
+    public async Task AnalyzeImage_CompletesWithinFifteenSeconds_ForSuccessfulRequests()
+    {
+        using var content = CreateMultipartContent("landmark.jpg", "image/jpeg", new byte[] { 1, 2, 3, 4 });
+        var stopwatch = Stopwatch.StartNew();
+
+        var response = await _client.PostAsync("/analyze-image", content);
+        stopwatch.Stop();
+
+        response.EnsureSuccessStatusCode();
+        Assert.True(
+            stopwatch.Elapsed <= TimeSpan.FromSeconds(15),
+            $"Analyze image request took {stopwatch.Elapsed.TotalSeconds:F2}s.");
+    }
+
+    [Fact]
+    public async Task AnalyzeImage_ReturnsGatewayTimeout_WhenRouteGenerationExceedsFifteenSeconds()
+    {
+        using var content = CreateMultipartContent("slow-timeout.jpg", "image/jpeg", new byte[] { 1, 2, 3, 4 });
+        var stopwatch = Stopwatch.StartNew();
+
+        var response = await _client.PostAsync("/analyze-image", content);
+        var responseBody = await response.Content.ReadAsStringAsync();
+        stopwatch.Stop();
+
+        Assert.Equal(HttpStatusCode.GatewayTimeout, response.StatusCode);
+        Assert.Contains("Nepavyko sugeneruoti marsruto per 15 sekundziu", responseBody);
+        Assert.True(
+            stopwatch.Elapsed < TimeSpan.FromSeconds(17),
+            $"Timeout response took {stopwatch.Elapsed.TotalSeconds:F2}s.");
     }
 
   

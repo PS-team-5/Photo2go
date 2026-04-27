@@ -20,6 +20,8 @@ builder.Services.Configure<ImageUploadOptions>(
     builder.Configuration.GetSection(ImageUploadOptions.SectionName));
 builder.Services.Configure<AiOptions>(
     builder.Configuration.GetSection(AiOptions.SectionName));
+builder.Services.Configure<RouteGenerationOptions>(
+    builder.Configuration.GetSection(RouteGenerationOptions.SectionName));
 builder.Services.Configure<FormOptions>(options =>
 {
     var imageUploadOptions = builder.Configuration
@@ -84,6 +86,9 @@ app.UseExceptionHandler(errorApp =>
         var imageUploadOptions = context.RequestServices
             .GetRequiredService<IOptions<ImageUploadOptions>>()
             .Value;
+        var routeGenerationOptions = context.RequestServices
+            .GetRequiredService<IOptions<RouteGenerationOptions>>()
+            .Value;
 
         switch (exception)
         {
@@ -110,6 +115,13 @@ app.UseExceptionHandler(errorApp =>
                 await context.Response.WriteAsJsonAsync(new
                 {
                     message = "AI servisas per ilgai neatsake."
+                });
+                return;
+            case RouteGenerationTimeoutException:
+                context.Response.StatusCode = StatusCodes.Status504GatewayTimeout;
+                await context.Response.WriteAsJsonAsync(new
+                {
+                    message = $"Nepavyko sugeneruoti marsruto per {routeGenerationOptions.TimeoutSeconds} sekundziu. Bandykite dar karta."
                 });
                 return;
             case AiResponseFormatException:
